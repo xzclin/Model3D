@@ -1,0 +1,3071 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model3D · 三维建模器</title>
+<style>
+/* ===== Apple Design — 蓝白极简风格 ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --white: #ffffff;
+  --gray-50: #f5f5f7;
+  --gray-100: #e8e8ed;
+  --gray-200: #d2d2d7;
+  --gray-300: #aeaeb2;
+  --gray-400: #8e8e93;
+  --gray-500: #636366;
+  --gray-600: #48484a;
+  --gray-700: #363639;
+  --gray-800: #1c1c1e;
+  --blue: #0071e3;
+  --blue-light: #409cff;
+  --blue-dark: #0058b0;
+  --blue-bg: #e8f2ff;
+  --blue-subtle: #f0f6ff;
+  --terracotta: #c97d5e;
+  --clay-light: #e8c4a8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --header-h: 40px;
+  --toolbar-w: 44px;
+  --panel-w: 320px;
+  --bottom-h: 150px;
+  font-size: 13px;
+}
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 布局 — 更通透 ===== */
+#app {
+  display: grid;
+  position: relative;
+  width: 100vw; height: 100vh;
+  grid-template-rows: var(--header-h) 1fr var(--bottom-h);
+  grid-template-columns: var(--toolbar-w) 1fr var(--panel-w);
+  grid-template-areas:
+    "header header header"
+    "toolbar viewport panel"
+    "bottom bottom bottom";
+}
+
+/* ===== 面板拖拽分隔条 ===== */
+#panel-resizer {
+  position: absolute;
+  top: var(--header-h);
+  bottom: var(--bottom-h);
+  right: var(--panel-w);
+  width: 5px;
+  cursor: col-resize;
+  z-index: 30;
+  transition: background 0.15s;
+  background: transparent;
+}
+#panel-resizer:hover,
+#panel-resizer.active {
+  background: var(--blue);
+  opacity: 0.5;
+}
+#panel-resizer::after {
+  content: '';
+  position: absolute;
+  left: -4px; right: -4px;
+  top: 0; bottom: 0;
+}
+
+/* ===== 顶栏 — 毛玻璃效果 ===== */
+#header {
+  grid-area: header;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  z-index: 20;
+  user-select: none;
+}
+#header .logo {
+  font-weight: 600;
+  color: var(--blue);
+  margin-right: 14px;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+.header-btn {
+  background: transparent;
+  border: none;
+  color: var(--gray-500);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.header-btn:hover { background: rgba(0,113,227,0.08); color: var(--blue); }
+.header-btn:active { background: rgba(0,113,227,0.15); transform: scale(0.97); }
+.header-sep { width: 1px; height: 18px; background: var(--gray-200); margin: 0 6px; }
+
+/* ===== 左侧工具栏 — 极简图标 ===== */
+#toolbar {
+  grid-area: toolbar;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border-right: 0.5px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 1px;
+  z-index: 5;
+}
+.tool-btn {
+  width: 36px; height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  gap: 0;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.tool-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.tool-btn:hover { background: rgba(0,113,227,0.08); color: var(--blue); }
+.tool-btn.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,113,227,0.3); }
+.tool-btn .label { font-size: 7px; line-height: 1; margin-top: 0; opacity: 0.7; }
+.tool-btn.active .label { opacity: 1; }
+.tool-sep { width: 24px; height: 1px; background: var(--gray-200); margin: 3px 0; }
+
+/* ===== 3D视口 ===== */
+#viewport {
+  grid-area: viewport;
+  position: relative;
+  overflow: hidden;
+  background: #f0f0f4;
+}
+#viewport canvas { display: block; width: 100% !important; height: 100% !important; }
+#viewport-info {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(0,0,0,0.3);
+  font-size: 11px;
+  pointer-events: none;
+  letter-spacing: 0.3px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 4px 14px;
+  border-radius: var(--radius-xl);
+}
+#viewport-controls-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.viewport-btn {
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(0,0,0,0.08);
+  color: var(--gray-500);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.viewport-btn:hover { background: rgba(255,255,255,0.95); color: var(--blue); }
+.viewport-btn:active { transform: scale(0.92); }
+
+/* ===== 右侧面板 ===== */
+#panel {
+  grid-area: panel;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-left: 0.5px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 5;
+}
+.panel-section { border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+.panel-header {
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+  cursor: default;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.panel-body { padding: 8px 14px 10px; display: flex; flex-direction: column; gap: 7px; }
+
+/* ===== 表单控件 — Apple风格 ===== */
+.form-row { display: flex; align-items: center; gap: 8px; }
+.form-row label { flex: 0 0 44px; font-size: 11px; color: var(--gray-400); font-weight: 500; }
+.form-row input[type="number"], .form-row select {
+  flex: 1;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  color: var(--gray-800);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.form-row input[type="number"]:focus, .form-row select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(0,113,227,0.15);
+}
+.form-row input[type="color"] {
+  width: 30px; height: 30px;
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
+  padding: 2px;
+}
+.form-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--blue);
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--gray-200);
+  border-radius: 2px;
+  outline: none;
+}
+.form-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: white;
+  border: 0.5px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.form-row input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.1);
+}
+.xyz-group { display: flex; gap: 4px; flex: 0 1 auto; }
+.xyz-group input { width: 52px; flex: none; }
+.xyz-label { font-size: 10px; font-weight: 600; width: 14px; text-align: center; }
+.xyz-label.x { color: #ff3b30; }
+.xyz-label.y { color: #34c759; }
+.xyz-label.z { color: var(--blue); }
+
+.btn {
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  color: var(--gray-700);
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn:hover { background: var(--gray-100); }
+.btn:active { transform: scale(0.97); }
+.btn-danger { color: #ff3b30; border-color: #ff3b30; }
+.btn-danger:hover { background: #ff3b30; color: #fff; }
+.btn-sm { padding: 3px 10px; font-size: 11px; border-radius: var(--radius-sm); }
+.btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ===== 底部大纲/层级 ===== */
+#bottom {
+  grid-area: bottom;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 0.5px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 5;
+}
+#bottom-tabs {
+  display: flex;
+  padding: 0 12px;
+  gap: 0;
+}
+.bottom-tab {
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--gray-400);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+  font-weight: 500;
+}
+.bottom-tab:hover { color: var(--gray-600); }
+.bottom-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+#bottom-content { flex: 1; overflow-y: auto; padding: 2px 0; }
+#outliner-list { list-style: none; }
+#outliner-list li {
+  padding: 5px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  border-left: 3px solid transparent;
+  transition: all 0.1s;
+}
+#outliner-list li:hover { background: rgba(0,113,227,0.05); }
+#outliner-list li.selected { background: rgba(0,113,227,0.1); border-left-color: var(--blue); }
+#outliner-list li .obj-icon {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: white;
+}
+#outliner-list li .obj-name { flex: 1; }
+
+/* ===== 右键菜单 — Apple风格 ===== */
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.05);
+  padding: 4px;
+  min-width: 140px;
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.context-menu.open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.1s;
+  border: none;
+  background: none;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+}
+.context-menu-item:hover { background: var(--blue); color: #fff; }
+.context-menu-item .cm-icon { width: 18px; text-align: center; font-size: 13px; }
+.context-menu-item .cm-shortcut { margin-left: auto; color: var(--gray-400); font-size: 10px; }
+.context-menu-item:hover .cm-shortcut { color: rgba(255,255,255,0.7); }
+.context-menu-sep { height: 1px; background: var(--gray-100); margin: 3px 4px; }
+
+/* ===== 滚动条 — 精致 ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-300); }
+
+/* ===== Toast — 苹果通知风格 ===== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(50,50,50,0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: white;
+  padding: 10px 24px;
+  border-radius: var(--radius-xl);
+  font-size: 13px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: var(--shadow-lg);
+  letter-spacing: 0.2px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 900px) {
+  #app { grid-template-columns: var(--toolbar-w) 1fr 0; }
+  #panel { display: none; }
+}
+@media (max-width: 600px) {
+  #app { grid-template-rows: var(--header-h) 1fr 0; }
+  #bottom { display: none; }
+  #toolbar { display: none; }
+  #app { grid-template-columns: 0 1fr 0; }
+}
+
+/* Gizmo mode indicator — 简洁标签 */
+#gizmo-indicator {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px 16px;
+  border-radius: var(--radius-xl);
+  font-size: 11px;
+  color: var(--blue);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  box-shadow: var(--shadow-sm);
+  border: 0.5px solid rgba(0,0,0,0.06);
+  font-weight: 500;
+}
+#gizmo-indicator.show { opacity: 1; }
+
+.empty-state { color: var(--gray-300); font-size: 12px; text-align: center; padding: 20px; }
+
+/* ===== 素材库弹窗 ===== */
+#library-modal .lib-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+#library-modal .lib-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px 8px;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#library-modal .lib-item:hover {
+  background: rgba(0,113,227,0.05);
+  border-color: var(--blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+#library-modal .lib-item .lib-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px;
+  margin-bottom: 2px;
+}
+#library-modal .lib-item .lib-name {
+  font-size: 10px; color: var(--gray-600); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 80px;
+}
+#library-modal .lib-item .lib-info {
+  font-size: 8px; color: var(--gray-400);
+}
+#library-modal .lib-item .lib-del {
+  font-size: 8px; color: var(--gray-400);
+  cursor: pointer; padding: 1px 6px; border-radius: 3px;
+  margin-top: 2px;
+}
+#library-modal .lib-item .lib-del:hover { color: #ff3b30; background: rgba(255,59,48,0.1); }
+#library-modal .lib-empty { color: var(--gray-300); font-size: 12px; text-align: center; padding: 40px; grid-column: 1 / -1; }
+#library-modal .lib-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+/* ===== 浮灵模式指示器 ===== */
+#ghost-hud {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(90,200,250,0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(90,200,250,0.3);
+  padding: 6px 20px;
+  border-radius: var(--radius-xl);
+  font-size: 11px;
+  color: #5ac8fa;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  box-shadow: 0 0 20px rgba(90,200,250,0.1);
+}
+#ghost-hud.show { opacity: 1; }
+#ghost-hud .key { display: inline-block; background: rgba(255,255,255,0.15); padding: 0 6px; border-radius: 3px; font-size: 9px; margin: 0 2px; }
+
+/* ===== 浮灵十字准星 ===== */
+#ghost-crosshair {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 2;
+}
+#ghost-crosshair.show { opacity: 1; }
+#ghost-crosshair::before, #ghost-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(90,200,250,0.6);
+}
+#ghost-crosshair::before {
+  width: 2px; height: 16px;
+  top: -8px; left: -1px;
+}
+#ghost-crosshair::after {
+  width: 16px; height: 2px;
+  top: -1px; left: -8px;
+}
+#ghost-crosshair-dot {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(90,200,250,0.8);
+  top: -2px; left: -2px;
+}
+
+/* ===== 图形选择弹窗 ===== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: modalFadeIn 0.2s ease;
+}
+.modal-overlay.open { display: flex; }
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(0,0,0,0.05);
+  padding: 24px 28px 20px;
+  width: 520px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: modalSlideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 16px;
+  letter-spacing: -0.2px;
+}
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.modal-shape-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 6px 10px;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  color: var(--gray-600);
+}
+.modal-shape-btn:hover {
+  background: var(--blue-subtle);
+  border-color: var(--blue);
+  color: var(--blue);
+  box-shadow: 0 2px 12px rgba(0,113,227,0.15);
+  transform: translateY(-2px);
+}
+.modal-shape-btn:active { transform: scale(0.95); }
+.modal-shape-btn svg { width: 28px; height: 28px; fill: currentColor; stroke: none; }
+.modal-shape-btn .shape-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===== 顶栏 ===== -->
+  <div id="header">
+    <span class="logo">◈ Model3D</span>
+    <div class="header-sep"></div>
+    <button class="header-btn" data-action="new-scene">新建场景</button>
+    <button class="header-btn" data-action="save-scene">💾 保存</button>
+    <button class="header-btn" data-action="load-scene">📂 加载</button>
+    <button class="header-btn" data-action="export-glb">⬇ 导出GLB</button>
+    <div class="header-sep"></div>
+    <button class="header-btn" data-action="undo" title="撤销 (Ctrl+Z)">↩ 撤销</button>
+    <button class="header-btn" data-action="redo" title="重做 (Ctrl+Shift+Z)">↪ 重做</button>
+    <div class="header-sep"></div>
+    <button class="header-btn" style="font-weight:600;color:var(--terracotta, #c97d5e);" onclick="window.location.href='clay.html'" title="打开捏土工坊">🫱 捏土</button>
+    <button class="header-btn" data-action="open-library" title="从素材库导入模型">📦 素材库</button>
+    <div class="header-sep"></div>
+    <span style="color:var(--text-dim);font-size:11px;margin-left:auto" id="fps-counter">FPS: --</span>
+  </div>
+
+  <!-- ===== 左侧工具栏 ===== -->
+  <div id="toolbar">
+    <button class="tool-btn active" data-tool="select" title="选择 (Q)">
+      <svg viewBox="0 0 24 24"><path d="M4 3l15 10-7 2-3 7z"/></svg>
+      <span class="label">选择</span>
+    </button>
+    <button class="tool-btn" data-tool="translate" title="移动 (W)">
+      <svg viewBox="0 0 24 24"><path d="M12 2l-4 4h3v5H6V8L2 12l4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3z"/></svg>
+      <span class="label">移动</span>
+    </button>
+    <button class="tool-btn" data-tool="rotate" title="旋转 (E)">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15.75-1.23-4-2.37V7z"/></svg>
+      <span class="label">旋转</span>
+    </button>
+    <button class="tool-btn" data-tool="scale" title="缩放 (R)">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span class="label">缩放</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" data-tool="clay" title="黏土雕刻 (T)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+      <span class="label">黏土</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" id="btn-add-shape" title="添加图形">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>
+      <span class="label">添加</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" data-action="duplicate" title="复制 (Shift+D)">
+      <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+      <span class="label">复制</span>
+    </button>
+    <button class="tool-btn btn-danger" data-action="delete" title="删除 (Delete)">
+      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      <span class="label">删除</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" data-tool="ghost" title="浮灵模式 (G)">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2zm0-4h2v2h-2z" fill="currentColor"/></svg>
+      <span class="label">浮灵</span>
+    </button>
+  </div>
+
+  <!-- ===== 3D视口 ===== -->
+  <div id="viewport">
+    <div id="gizmo-indicator">选择</div>
+    <div id="viewport-controls-overlay">
+      <button class="viewport-btn" data-view="perspective" title="透视/正交切换">3D</button>
+      <button class="viewport-btn" data-view="front" title="前视图">前</button>
+      <button class="viewport-btn" data-view="top" title="顶视图">顶</button>
+      <button class="viewport-btn" data-view="right" title="右视图">右</button>
+      <button class="viewport-btn" data-action="frame-selected" title="聚焦选中 (F)">⊡</button>
+      <button class="viewport-btn" data-action="reset-view" title="重置视角 (Home)">⌂</button>
+      <div style="height:2px"></div>
+      <button class="viewport-btn" data-action="toggle-grid" title="切换网格" style="font-size:9px">▦</button>
+      <button class="viewport-btn" data-action="toggle-axes" title="切换坐标轴" style="font-size:9px">✛</button>
+    </div>
+    <!-- Snapping indicator -->
+    <div id="snap-bar" style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:4px;pointer-events:none;">
+      <span style="background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);padding:3px 12px;border-radius:20px;font-size:10px;color:var(--gray-400);border:0.5px solid rgba(0,0,0,0.06);" id="snap-indicator">吸附: 关</span>
+    </div>
+    <div id="ghost-crosshair"><div id="ghost-crosshair-dot"></div></div>
+    <div id="ghost-hud">🌊 浮灵模式 · <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 移动 · <span class="key">Space</span> 上升 · <span class="key">Shift</span> 下降 · <span class="key">G</span> 退出</div>
+    <div id="viewport-info" style="transition:opacity 0.3s;">左键旋转 · 滚轮缩放 · 右键平移 · <span style="color:var(--blue)">G</span> 浮灵</div>
+  </div>
+
+  <!-- ===== 右侧属性面板 ===== -->
+  <div id="panel">
+    <div class="panel-section">
+      <div class="panel-header">物体属性</div>
+      <div class="panel-body">
+        <div class="form-row">
+          <label>名称</label>
+          <input type="text" id="obj-name" value="未选择" disabled style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:var(--radius);font-size:12px;">
+        </div>
+        <div class="form-row">
+          <label>类型</label>
+          <span id="obj-type" style="color:var(--text-dim);font-size:12px;">-</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-header">变换</div>
+      <div class="panel-body" id="transform-panel">
+        <div class="form-row"><label>位置</label><div class="xyz-group">
+          <span class="xyz-label x">X</span><input type="number" id="pos-x" step="0.1">
+          <span class="xyz-label y">Y</span><input type="number" id="pos-y" step="0.1">
+          <span class="xyz-label z">Z</span><input type="number" id="pos-z" step="0.1">
+        </div></div>
+        <div class="form-row"><label>旋转</label><div class="xyz-group">
+          <span class="xyz-label x">X</span><input type="number" id="rot-x" step="5">
+          <span class="xyz-label y">Y</span><input type="number" id="rot-y" step="5">
+          <span class="xyz-label z">Z</span><input type="number" id="rot-z" step="5">
+        </div></div>
+        <div class="form-row"><label>缩放</label><div class="xyz-group">
+          <span class="xyz-label x">X</span><input type="number" id="scl-x" step="0.1" min="0.01">
+          <span class="xyz-label y">Y</span><input type="number" id="scl-y" step="0.1" min="0.01">
+          <span class="xyz-label z">Z</span><input type="number" id="scl-z" step="0.1" min="0.01">
+        </div></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-header">材质</div>
+      <div class="panel-body" id="material-panel">
+        <div class="form-row"><label>颜色</label><input type="color" id="mat-color" value="#4fc3f7"></div>
+        <div class="form-row"><label>金属度</label><input type="range" id="mat-metal" min="0" max="1" step="0.01" value="0.1"></div>
+        <div class="form-row"><label>粗糙度</label><input type="range" id="mat-rough" min="0" max="1" step="0.01" value="0.6"></div>
+        <div class="form-row"><label>线框</label><input type="checkbox" id="mat-wireframe" style="accent-color:var(--accent)"></div>
+        <div class="form-row"><label>着色</label>
+          <select id="mat-shading" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:var(--radius);font-size:12px;outline:none;">
+            <option value="smooth">平滑</option>
+            <option value="flat">平面</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="panel-section" id="clay-panel" style="display:none;">
+      <div class="panel-header">黏土雕刻</div>
+      <div class="panel-body">
+        <div class="form-row"><label>笔刷</label>
+          <select id="clay-brush-type" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:var(--radius);font-size:12px;outline:none;">
+            <option value="push">推拉</option>
+            <option value="smooth">平滑</option>
+            <option value="inflate">膨胀</option>
+            <option value="flatten">压平</option>
+          </select>
+        </div>
+        <div class="form-row"><label>大小</label><input type="range" id="clay-size" min="0.1" max="2" step="0.05" value="0.6" style="flex:1;accent-color:var(--accent)"><span id="clay-size-val" style="width:30px;text-align:right;color:var(--text-dim);font-size:11px">0.6</span></div>
+        <div class="form-row"><label>力度</label><input type="range" id="clay-strength" min="0.01" max="1" step="0.01" value="0.25" style="flex:1;accent-color:var(--accent)"><span id="clay-strength-val" style="width:30px;text-align:right;color:var(--text-dim);font-size:11px">0.25</span></div>
+        <div class="form-row"><label>细分</label>
+          <button class="btn btn-sm" id="clay-subdivide" style="flex:1;">细分网格</button>
+        </div>
+        <div style="margin-top:4px;font-size:10px;color:var(--gray-400);text-align:center;">
+          拖拽雕刻 · Shift 凹陷 · Ctrl 平滑
+        </div>
+      </div>
+    </div>
+    <div class="panel-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="panel-header">场景信息</div>
+      <div class="panel-body" style="flex:1;font-size:11px;color:var(--text-dim);">
+        <div id="scene-info">物体数: 0</div>
+        <div id="clay-info" style="display:none;margin-top:4px;color:var(--blue);">顶点数: <span id="clay-vert-count">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 面板拖拽分隔条 ===== -->
+  <div id="panel-resizer"></div>
+
+  <!-- ===== 底部大纲 ===== -->
+  <div id="bottom">
+    <div id="bottom-tabs">
+      <div class="bottom-tab active" data-tab="outliner">场景集合</div>
+    </div>
+    <div id="bottom-content">
+      <ul id="outliner-list"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 右键菜单 ===== -->
+<div class="context-menu" id="context-menu">
+  <button class="context-menu-item" data-action="duplicate">
+    <span class="cm-icon">📋</span> 复制 <span class="cm-shortcut">Shift+D</span>
+  </button>
+  <button class="context-menu-item" data-action="rename">
+    <span class="cm-icon">✏️</span> 重命名
+  </button>
+  <div class="context-menu-sep"></div>
+  <button class="context-menu-item" data-action="delete" style="color:#ff3b30;">
+    <span class="cm-icon">🗑</span> 删除 <span class="cm-shortcut">Del</span>
+  </button>
+</div>
+
+<!-- ===== Toast ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== 图形选择弹窗 ===== -->
+<div class="modal-overlay" id="shape-modal">
+  <div class="modal" style="position:relative">
+    <div class="modal-title">选择要添加的图形</div>
+    <div class="modal-grid" id="shape-grid">
+      <!-- 由 JS 动态渲染 -->
+    </div>
+  </div>
+</div>
+
+<!-- ===== 文件输入(隐藏) ===== -->
+<input type="file" id="file-input" accept=".json,.glb,.gltf" style="display:none">
+
+<!-- ===== 素材库弹窗 ===== -->
+<div class="modal-overlay" id="library-modal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-title">📦 素材库 · 从捏土工坊导入</div>
+    <div class="lib-grid" id="lib-grid"></div>
+    <div class="lib-actions">
+      <span style="font-size:11px;color:var(--gray-400);margin-right:auto;align-self:center;" id="lib-hint">点击模型添加到场景</span>
+      <button class="btn" onclick="closeLibraryModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Three.js Import Map ===== -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- ===== 主程序 ===== -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+// ============================================================
+//  核心状态
+// ============================================================
+const state = {
+  objects: [],        // 场景中的可交互物体
+  selected: null,     // 当前选中的物体
+  toolMode: 'select', // select | translate | rotate | scale | clay
+  isOrtho: false,
+  undoStack: [],
+  redoStack: [],
+  objectIdCounter: 0,
+  transformActive: false, // 是否正在拖动transform控件
+};
+
+// ============================================================
+//  黏土雕刻系统 (Sculpting)
+// ============================================================
+const clay = {
+  active: false,
+  target: null,
+  brushSize: 0.6,
+  brushStrength: 0.25,
+  brushType: 'push', // push | smooth | inflate | flatten
+  isSculpting: false,
+  cursor: null,       // Brush ring cursor
+  cursorNormal: null, // Normal helper line
+  hitPoint: new THREE.Vector3(),
+  hitNormal: new THREE.Vector3(),
+  lastPointer: new THREE.Vector2(),
+  originalData: null, // For undo
+  vertCache: [],      // Cached vertex data for performance
+  tempVec: new THREE.Vector3(),
+  tempVec2: new THREE.Vector3(),
+  raycaster: new THREE.Raycaster(),
+  pointer: new THREE.Vector2(),
+};
+
+// -------- 初始化黏土系统 ----------
+function initClay() {
+  // 笔刷光标：半透明环
+  const ringGeo = new THREE.RingGeometry(0.45, 0.55, 48);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false,
+  });
+  clay.cursor = new THREE.Mesh(ringGeo, ringMat);
+  clay.cursor.visible = false;
+  clay.cursor.renderOrder = 999;
+  scene.add(clay.cursor);
+
+  // 法线指示线
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x0071e3, transparent: true, opacity: 0.5 });
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.5, 0)
+  ]);
+  clay.cursorNormal = new THREE.Line(lineGeo, lineMat);
+  clay.cursorNormal.visible = false;
+  scene.add(clay.cursorNormal);
+}
+
+// -------- 细分网格 (Loop subdivision style) ----------
+function subdivideMeshOnce(geometry) {
+  const pos = geometry.attributes.position;
+  if (!pos) return geometry;
+
+  // 转为非索引 (每个三角形3个独立顶点)
+  const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry.clone();
+  const positions = nonIndexed.attributes.position.array;
+  const vertCount = positions.length / 3;
+  const faces = vertCount / 3;
+
+  // 每个三角形 -> 4个小三角形
+  // 原三角形 ABC, 中点 MAB, MBC, MCA
+  const newPositions = [];
+  const v = (i) => { const o = i * 3; return [positions[o], positions[o + 1], positions[o + 2]]; };
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+
+  for (let f = 0; f < faces; f++) {
+    const i0 = f * 3, i1 = f * 3 + 1, i2 = f * 3 + 2;
+    const a = v(i0), b = v(i1), c = v(i2);
+    const mab = mid(a, b), mbc = mid(b, c), mca = mid(c, a);
+    // 4个三角形: (A, MAB, MCA), (B, MBC, MAB), (C, MCA, MBC), (MAB, MBC, MCA)
+    const triVerts = [a, mab, mca, b, mbc, mab, c, mca, mbc, mab, mbc, mca];
+    triVerts.forEach(vv => { newPositions.push(vv[0], vv[1], vv[2]); });
+  }
+
+  const newGeo = new THREE.BufferGeometry();
+  newGeo.setAttribute('position', new THREE.Float32BufferAttribute(newPositions, 3));
+  newGeo.computeVertexNormals();
+  return newGeo;
+}
+
+function subdivideTargetMesh(levels = 1) {
+  if (!clay.target) return;
+  let geo = clay.target.geometry;
+  const name = clay.target.userData.name;
+  for (let i = 0; i < levels; i++) {
+    geo = subdivideMeshOnce(geo);
+  }
+  clay.target.geometry = geo;
+  updateClayInfo();
+  showToast(`${name} 细分完成 · ${(geo.attributes.position.count / 3).toFixed(0)} 顶点`);
+}
+
+// -------- 黏土模式进入/退出 ----------
+function enterClayMode() {
+  if (!state.selected) {
+    showToast('请先选择一个物体');
+    setToolMode('select');
+    return;
+  }
+  const obj = state.selected;
+  // 只对 Mesh 有效
+  if (!obj.isMesh) {
+    showToast('只能雕刻网格物体');
+    setToolMode('select');
+    return;
+  }
+
+  clay.active = true;
+  clay.target = obj;
+  clay.cursor.visible = true;
+  clay.cursorNormal.visible = true;
+
+  // 如果顶点太少，自动细分
+  const count = obj.geometry.attributes.position.count;
+  if (count < 200) {
+    subdivideTargetMesh(2);
+  } else if (count < 800) {
+    subdivideTargetMesh(1);
+  }
+
+  // 保存初始状态用于撤销
+  saveClayUndo();
+
+  // 显示黏土面板
+  document.getElementById('clay-panel').style.display = '';
+  document.getElementById('clay-info').style.display = '';
+  updateClayInfo();
+
+  // 隐藏transform控件
+  transformControls.detach();
+
+  // 绑定事件
+  renderer.domElement.addEventListener('pointerdown', onClayPointerDown);
+  renderer.domElement.addEventListener('pointermove', onClayPointerMove);
+  renderer.domElement.addEventListener('pointerup', onClayPointerUp);
+  renderer.domElement.addEventListener('pointerleave', onClayPointerUp);
+  renderer.domElement.style.cursor = 'none';
+
+  showToast('进入黏土模式 · 拖拽雕刻');
+  updateClayInfo();
+}
+
+function exitClayMode() {
+  // 保存最终状态
+  if (clay.isSculpting) {
+    clay.isSculpting = false;
+    saveClayUndo();
+  }
+
+  clay.active = false;
+  clay.target = null;
+  clay.cursor.visible = false;
+  clay.cursorNormal.visible = false;
+
+  document.getElementById('clay-panel').style.display = 'none';
+  document.getElementById('clay-info').style.display = 'none';
+
+  renderer.domElement.removeEventListener('pointerdown', onClayPointerDown);
+  renderer.domElement.removeEventListener('pointermove', onClayPointerMove);
+  renderer.domElement.removeEventListener('pointerup', onClayPointerUp);
+  renderer.domElement.removeEventListener('pointerleave', onClayPointerUp);
+  renderer.domElement.style.cursor = '';
+
+  showToast('退出黏土模式');
+}
+
+function saveClayUndo() {
+  if (!clay.target) return;
+  const obj = clay.target;
+  const pos = obj.geometry.attributes.position.array.slice();
+  state.undoStack.push(JSON.stringify({
+    type: 'clay',
+    objectId: obj.userData.id,
+    positions: Array.from(pos),
+  }));
+  if (state.undoStack.length > 50) state.undoStack.shift();
+  state.redoStack = [];
+}
+
+function updateClayInfo() {
+  if (!clay.target) return;
+  const count = clay.target.geometry.attributes.position.count / 3;
+  document.getElementById('clay-vert-count').textContent = Math.round(count);
+}
+
+// -------- 雕刻事件处理 ----------
+function getClayHit(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  clay.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  clay.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  clay.raycaster.setFromCamera(clay.pointer, camera);
+
+  // 只检测雕刻目标
+  const intersects = clay.raycaster.intersectObject(clay.target, false);
+  if (intersects.length > 0) {
+    const hit = intersects[0];
+    clay.hitPoint.copy(hit.point);
+    clay.hitNormal.copy(hit.face.normal).transformDirection(clay.target.matrixWorld);
+    return true;
+  }
+  return false;
+}
+
+function onClayPointerDown(event) {
+  if (!clay.active || !clay.target) return;
+  // 只响应左键
+  if (event.button !== 0) return;
+
+  if (!getClayHit(event)) return;
+
+  clay.isSculpting = true;
+  clay.lastPointer.set(event.clientX, event.clientY);
+  orbitControls.enabled = false;
+
+  // 缓存顶点数据提高性能
+  cacheClayVertices();
+
+  // 应用一次
+  applyClayBrush(event);
+}
+
+function onClayPointerMove(event) {
+  // 更新光标位置
+  if (!clay.active || !clay.target) return;
+
+  if (getClayHit(event)) {
+    clay.cursor.position.copy(clay.hitPoint);
+    // 让环朝向法线方向
+    const up = new THREE.Vector3(0, 1, 0);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, clay.hitNormal);
+    clay.cursor.quaternion.copy(quat);
+    // 缩放环到笔刷大小
+    clay.cursor.scale.set(clay.brushSize, clay.brushSize, clay.brushSize);
+
+    // 法线指示线
+    clay.cursorNormal.position.copy(clay.hitPoint);
+    const dir = clay.hitNormal.clone().multiplyScalar(clay.brushSize * 0.5);
+    const pts = [new THREE.Vector3(0, 0, 0), dir];
+    clay.cursorNormal.geometry.dispose();
+    clay.cursorNormal.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+
+    clay.cursor.visible = true;
+    clay.cursorNormal.visible = true;
+  } else {
+    clay.cursor.visible = false;
+    clay.cursorNormal.visible = false;
+  }
+
+  if (!clay.isSculpting) return;
+
+  // 检测Shift=凹陷, Ctrl=平滑
+  applyClayBrush(event);
+  clay.lastPointer.set(event.clientX, event.clientY);
+}
+
+function onClayPointerUp(event) {
+  if (!clay.isSculpting) return;
+  clay.isSculpting = false;
+  orbitControls.enabled = true;
+  saveClayUndo();
+
+  // 更新法线
+  if (clay.target) {
+    clay.target.geometry.computeVertexNormals();
+    clay.target.geometry.attributes.position.needsUpdate = true;
+  }
+}
+
+// -------- 缓存顶点数据 ----------
+function cacheClayVertices() {
+  if (!clay.target) return;
+  const geo = clay.target.geometry;
+  const pos = geo.attributes.position;
+  const vertCount = pos.count;
+
+  // 确保是非索引几何体
+  if (geo.index) {
+    const newGeo = geo.toNonIndexed();
+    clay.target.geometry = newGeo;
+    geo.dispose();
+  }
+
+  const newGeo = clay.target.geometry;
+  const newPos = newGeo.attributes.position;
+  clay.vertCache = [];
+  for (let i = 0; i < newPos.count; i++) {
+    const idx = i * 3;
+    clay.vertCache.push({
+      index: i,
+      orig: new THREE.Vector3(newPos.array[idx], newPos.array[idx + 1], newPos.array[idx + 2]),
+      normal: new THREE.Vector3(0, 0, 0),
+    });
+  }
+
+  // 计算顶点法线 (简单平均面法线)
+  computeClayVertexNormals();
+}
+
+function computeClayVertexNormals() {
+  const geo = clay.target.geometry;
+  const pos = geo.attributes.position;
+  const vertCount = pos.count;
+  const faceCount = vertCount / 3;
+
+  // 重置法线
+  for (let i = 0; i < vertCount; i++) {
+    clay.vertCache[i].normal.set(0, 0, 0);
+  }
+
+  // 计算每个面的法线，累加到顶点
+  const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
+  const e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  for (let f = 0; f < faceCount; f++) {
+    const i0 = f * 3, i1 = f * 3 + 1, i2 = f * 3 + 2;
+    const p = pos.array;
+    v1.set(p[i0 * 3], p[i0 * 3 + 1], p[i0 * 3 + 2]);
+    v2.set(p[i1 * 3], p[i1 * 3 + 1], p[i1 * 3 + 2]);
+    v3.set(p[i2 * 3], p[i2 * 3 + 1], p[i2 * 3 + 2]);
+    e1.subVectors(v2, v1);
+    e2.subVectors(v3, v1);
+    const fn = new THREE.Vector3().crossVectors(e1, e2).normalize();
+    clay.vertCache[i0].normal.add(fn);
+    clay.vertCache[i1].normal.add(fn);
+    clay.vertCache[i2].normal.add(fn);
+  }
+
+  // 归一化
+  for (let i = 0; i < vertCount; i++) {
+    clay.vertCache[i].normal.normalize();
+  }
+}
+
+// -------- 应用笔刷 ----------
+function applyClayBrush(event) {
+  if (!clay.target || !clay.isSculpting) return;
+
+  const shift = event.shiftKey;
+  const ctrl = event.ctrlKey || event.metaKey;
+  const brushType = ctrl ? 'smooth' : (shift ? 'push' : clay.brushType);
+
+  const geo = clay.target.geometry;
+  const pos = geo.attributes.position;
+  const radius = clay.brushSize;
+  const strength = clay.brushStrength * 0.05;
+
+  // 将hitPoint转换到局部空间
+  const localHit = clay.hitPoint.clone();
+  clay.target.worldToLocal(localHit);
+
+  // 找到半径内的所有顶点
+  const sqRadius = radius * radius;
+  const affectedVerts = [];
+
+  for (let i = 0; i < clay.vertCache.length; i++) {
+    const vc = clay.vertCache[i];
+    const dx = vc.orig.x - localHit.x;
+    const dy = vc.orig.y - localHit.y;
+    const dz = vc.orig.z - localHit.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    if (distSq < sqRadius) {
+      const dist = Math.sqrt(distSq);
+      const influence = 1 - (dist / radius);
+      affectedVerts.push({ index: i, dist, influence: Math.max(0, influence * influence) });
+    }
+  }
+
+  if (affectedVerts.length === 0) return;
+
+  // 根据笔刷类型处理顶点
+  const vWorld = new THREE.Vector3();
+  const nWorld = new THREE.Vector3();
+
+  switch (brushType) {
+    case 'push': {
+      // 沿法线方向推拉
+      const dragDir = new THREE.Vector3(
+        event.clientX - clay.lastPointer.x,
+        event.clientY - clay.lastPointer.y,
+        0
+      );
+      const pushSign = dragDir.length() > 1 ? Math.sign(dragDir.y) : 1;
+      affectedVerts.forEach(({ index, influence }) => {
+        const vc = clay.vertCache[index];
+        const offset = strength * influence * pushSign;
+        vc.orig.x += vc.normal.x * offset;
+        vc.orig.y += vc.normal.y * offset;
+        vc.orig.z += vc.normal.z * offset;
+      });
+      break;
+    }
+    case 'smooth': {
+      // 拉普拉斯平滑
+      const smoothFactor = strength * 2;
+      const avgPositions = [];
+      affectedVerts.forEach(({ index }) => {
+        let avgX = 0, avgY = 0, avgZ = 0, count = 0;
+        // 找相邻顶点（共享面的顶点）
+        const vc = clay.vertCache[index];
+        // 简单近似：平均附近顶点
+        affectedVerts.forEach(({ index: j }) => {
+          if (j === index) return;
+          const vj = clay.vertCache[j];
+          const d = vc.orig.distanceTo(vj.orig);
+          if (d < radius * 0.4) {
+            avgX += vj.orig.x; avgY += vj.orig.y; avgZ += vj.orig.z;
+            count++;
+          }
+        });
+        if (count > 0) {
+          avgPositions.push({
+            index,
+            x: avgX / count,
+            y: avgY / count,
+            z: avgZ / count,
+          });
+        }
+      });
+      avgPositions.forEach(({ index, x, y, z }) => {
+        const vc = clay.vertCache[index];
+        vc.orig.x += (x - vc.orig.x) * smoothFactor;
+        vc.orig.y += (y - vc.orig.y) * smoothFactor;
+        vc.orig.z += (z - vc.orig.z) * smoothFactor;
+      });
+      break;
+    }
+    case 'inflate': {
+      // 沿法线膨胀
+      affectedVerts.forEach(({ index, influence }) => {
+        const vc = clay.vertCache[index];
+        const offset = strength * influence;
+        vc.orig.x += vc.normal.x * offset;
+        vc.orig.y += vc.normal.y * offset;
+        vc.orig.z += vc.normal.z * offset;
+      });
+      break;
+    }
+    case 'flatten': {
+      // 压平到接触平面
+      const planeNormal = clay.hitNormal.clone();
+      clay.target.worldToLocal(planeNormal);
+      const planePoint = localHit.clone();
+      affectedVerts.forEach(({ index, influence }) => {
+        const vc = clay.vertCache[index];
+        const toPoint = clay.tempVec.copy(vc.orig).sub(planePoint);
+        const dist = toPoint.dot(planeNormal);
+        const offset = dist * influence * strength * 5;
+        vc.orig.x -= planeNormal.x * offset;
+        vc.orig.y -= planeNormal.y * offset;
+        vc.orig.z -= planeNormal.z * offset;
+      });
+      break;
+    }
+  }
+
+  // 更新几何体
+  affectedVerts.forEach(({ index }) => {
+    const vc = clay.vertCache[index];
+    const i3 = index * 3;
+    pos.array[i3] = vc.orig.x;
+    pos.array[i3 + 1] = vc.orig.y;
+    pos.array[i3 + 2] = vc.orig.z;
+  });
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+}
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+// 渐变天空盒 — 明亮蓝白
+const canvas = document.createElement('canvas');
+canvas.width = 2; canvas.height = 256;
+const ctx = canvas.getContext('2d');
+const grad = ctx.createLinearGradient(0, 0, 0, 256);
+grad.addColorStop(0, '#e8f0fe');
+grad.addColorStop(0.4, '#f0f4f8');
+grad.addColorStop(1, '#f5f5f7');
+ctx.fillStyle = grad;
+ctx.fillRect(0, 0, 2, 256);
+const bgTexture = new THREE.CanvasTexture(canvas);
+scene.background = bgTexture;
+
+const camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
+camera.position.set(6, 4, 8);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.insertBefore(renderer.domElement, viewport.firstChild);
+
+// ===== 光照（中性白光，确保颜色准确） =====
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
+mainLight.position.set(8, 12, 6);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.width = 1024;
+mainLight.shadow.mapSize.height = 1024;
+scene.add(mainLight);
+
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+fillLight.position.set(-4, 2, -6);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+rimLight.position.set(-2, -1, 8);
+scene.add(rimLight);
+
+// ===== 网格 =====
+const gridHelper = new THREE.Group();
+
+const grid = new THREE.GridHelper(20, 20, 0x0071e3, 0xbbbbcc);
+grid.material.transparent = true;
+grid.material.opacity = 0.35;
+gridHelper.add(grid);
+
+const gridFine = new THREE.GridHelper(20, 100, 0x0071e3, 0xd0d0dd);
+gridFine.material.transparent = true;
+gridFine.material.opacity = 0.15;
+gridHelper.add(gridFine);
+
+scene.add(gridHelper);
+
+// ===== 坐标轴 =====
+const axesHelper = new THREE.AxesHelper(3);
+scene.add(axesHelper);
+
+// ===== 地面 (阴影接收) =====
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.01;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ============================================================
+//  控制器
+// ============================================================
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.1;
+orbitControls.minDistance = 0.5;
+orbitControls.maxDistance = 50;
+orbitControls.target.set(0, 0, 0);
+
+const transformControls = new TransformControls(camera, renderer.domElement);
+transformControls.setSize(0.8);
+scene.add(transformControls);
+
+// 当transform控件激活时禁用orbit
+transformControls.addEventListener('dragging-changed', (event) => {
+  orbitControls.enabled = !event.value;
+  state.transformActive = event.value;
+  if (!event.value) {
+    updatePropertyPanel();
+    saveUndoState();
+  }
+});
+
+// ============================================================
+//  工具函数
+// ============================================================
+function generateId() {
+  return `obj_${++state.objectIdCounter}`;
+}
+
+function getObjectById(id) {
+  return state.objects.find(o => o.userData.id === id) || null;
+}
+
+function getObjectIndex(id) {
+  return state.objects.findIndex(o => o.userData.id === id);
+}
+
+// ============================================================
+//  序列化 / 反序列化 (用于Undo)
+// ============================================================
+function serializeObject(obj) {
+  const m = obj.userData.material;
+  const data = {
+    id: obj.userData.id,
+    name: obj.userData.name,
+    type: obj.userData.type,
+    geometry: obj.geometry.type,
+    geometryParams: obj.userData.geometryParams,
+    position: obj.position.toArray(),
+    rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z, obj.rotation.order],
+    scale: obj.scale.toArray(),
+    color: m ? m.color.getHex() : 0x4fc3f7,
+    metalness: m ? m.metalness : 0.1,
+    roughness: m ? m.roughness : 0.6,
+    wireframe: m ? m.wireframe : false,
+    flatShading: m ? m.flatShading : false,
+  };
+
+  // 对于素材库模型，保存原始顶点数据
+  if (obj.userData.type === 'library') {
+    const pos = obj.geometry.attributes.position;
+    data._vertices = Array.from(pos.array);
+    const norm = obj.geometry.attributes.normal;
+    data._normals = norm ? Array.from(norm.array) : null;
+    const uv = obj.geometry.attributes.uv;
+    data._uvs = uv ? Array.from(uv.array) : null;
+  }
+
+  return data;
+}
+
+function deserializeObject(data) {
+  let geo;
+  if (data.type === 'library' && data._vertices) {
+    // 从保存的顶点数据重建几何体
+    geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(data._vertices), 3));
+    if (data._normals) geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(data._normals), 3));
+    if (data._uvs) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(data._uvs), 2));
+    if (!data._normals) geo.computeVertexNormals();
+  } else {
+    geo = createGeometry(data.type, data.geometryParams);
+  }
+  const mat = new THREE.MeshStandardMaterial({
+    color: data.color,
+    metalness: data.metalness,
+    roughness: data.roughness,
+    wireframe: data.wireframe,
+    flatShading: data.flatShading || false,
+    envMapIntensity: 0.4,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.userData.id = data.id;
+  mesh.userData.name = data.name;
+  mesh.userData.type = data.type;
+  mesh.userData.geometryParams = data.geometryParams;
+  mesh.userData.material = mat;
+  mesh.position.fromArray(data.position);
+  mesh.rotation.set(data.rotation[0], data.rotation[1], data.rotation[2]);
+  if (data.rotation[3]) mesh.rotation.order = data.rotation[3];
+  mesh.scale.fromArray(data.scale);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function saveUndoState() {
+  const snap = state.objects.map(o => serializeObject(o));
+  state.undoStack.push(JSON.stringify(snap));
+  if (state.undoStack.length > 50) state.undoStack.shift();
+  state.redoStack = [];
+}
+
+function undo() {
+  if (state.undoStack.length === 0) return;
+  const currentSnap = state.objects.map(o => serializeObject(o));
+  state.redoStack.push(JSON.stringify(currentSnap));
+  const prev = JSON.parse(state.undoStack.pop());
+  restoreScene(prev);
+  showToast('撤销');
+}
+
+function redo() {
+  if (state.redoStack.length === 0) return;
+  const currentSnap = state.objects.map(o => serializeObject(o));
+  state.undoStack.push(JSON.stringify(currentSnap));
+  const next = JSON.parse(state.redoStack.pop());
+  restoreScene(next);
+  showToast('重做');
+}
+
+function restoreScene(dataArray) {
+  // 清除当前物体
+  state.objects.forEach(o => {
+    scene.remove(o);
+    o.geometry.dispose();
+    o.material.dispose();
+  });
+  state.objects = [];
+  state.selected = null;
+  transformControls.detach();
+
+  // 重建
+  dataArray.forEach(d => {
+    const mesh = deserializeObject(d);
+    scene.add(mesh);
+    state.objects.push(mesh);
+  });
+
+  updateOutliner();
+  updatePropertyPanel();
+  updateSceneInfo();
+}
+
+// ============================================================
+//  图形定义数据
+// ============================================================
+const SHAPES = [
+  { type: 'box', label: '立方体', svg: '<svg viewBox="0 0 24 24"><path d="M21 16.5v-9L12 2 3 7.5v9L12 22l9-5.5zM12 4.33l6 3.5v5.34l-6 3.5-6-3.5V7.83l6-3.5z"/></svg>' },
+  { type: 'sphere', label: '球体', svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/></svg>' },
+  { type: 'cylinder', label: '圆柱', svg: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="6" x2="4" y2="18" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="6" x2="20" y2="18" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="18" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
+  { type: 'cone', label: '圆锥', svg: '<svg viewBox="0 0 24 24"><polygon points="12,2 4,18 20,18" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="18" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
+  { type: 'capsule', label: '胶囊', svg: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
+  { type: 'torus', label: '圆环', svg: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="9" ry="3" fill="none" stroke="currentColor" stroke-width="0.8"/></svg>' },
+  { type: 'torusKnot', label: '环面结', svg: '<svg viewBox="0 0 24 24"><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 6c-3.31 0-6 2.69-6 6" fill="none" stroke="currentColor" stroke-width="0.8"/></svg>' },
+  { type: 'plane', label: '平面', svg: '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="0.8"/><line x1="8" y1="6" x2="8" y2="18" stroke="currentColor" stroke-width="0.8"/></svg>' },
+  { type: 'ring', label: '圆片', svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
+  { type: 'tetrahedron', label: '四面体', svg: '<svg viewBox="0 0 24 24"><polygon points="12,2 4,18 20,18" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="18" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>' },
+  { type: 'octahedron', label: '八面体', svg: '<svg viewBox="0 0 24 24"><polygon points="12,2 20,12 12,22 4,12" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>' },
+  { type: 'dodecahedron', label: '十二面体', svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><polygon points="12,3 18,7 18,17 12,21 6,17 6,7" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>' },
+  { type: 'icosahedron', label: '二十面体', svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><polygon points="12,3 20,9 17,19 7,19 4,9" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>' },
+  { type: 'lathe', label: '花瓶', svg: '<svg viewBox="0 0 24 24"><path d="M8 2c0 0-2 4-2 8s2 8 2 8h4c0 0 2-4 2-8s-2-8-2-8H8z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="2" x2="12" y2="2" stroke="currentColor" stroke-width="1.5"/></svg>' },
+  { type: 'helix', label: '弹簧', svg: '<svg viewBox="0 0 24 24"><path d="M4 6c0 0 4-2 8 0s8 0 8 0" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 12c0 0 4 2 8 0s8 0 8 0" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 18c0 0 4-2 8 0s8 0 8 0" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
+];
+
+// ============================================================
+//  几何体工厂
+// ============================================================
+function createGeometry(type, params = {}) {
+  const p = params || {};
+  switch (type) {
+    case 'box': return new THREE.BoxGeometry(p.w || 1, p.h || 1, p.d || 1);
+    case 'sphere': return new THREE.SphereGeometry(p.r || 0.6, p.segW || 32, p.segH || 24);
+    case 'cylinder': return new THREE.CylinderGeometry(p.rT || 0.6, p.rB || 0.6, p.h || 1.2, p.seg || 32);
+    case 'cone': return new THREE.ConeGeometry(p.r || 0.6, p.h || 1.2, p.seg || 32);
+    case 'capsule': return new THREE.CapsuleGeometry(p.r || 0.4, p.len || 0.8, p.capSeg || 8, p.radSeg || 16);
+    case 'torus': return new THREE.TorusGeometry(p.r || 0.6, p.t || 0.2, p.segR || 16, p.segT || 32);
+    case 'torusKnot': return new THREE.TorusKnotGeometry(p.r || 0.5, p.t || 0.2, p.seg || 64, p.segT || 16);
+    case 'plane': return new THREE.PlaneGeometry(p.w || 1.2, p.h || 1.2);
+    case 'ring': return new THREE.RingGeometry(p.iR || 0.2, p.oR || 0.6, p.seg || 32);
+    case 'tetrahedron': return new THREE.TetrahedronGeometry(p.r || 0.7);
+    case 'octahedron': return new THREE.OctahedronGeometry(p.r || 0.7);
+    case 'dodecahedron': return new THREE.DodecahedronGeometry(p.r || 0.7);
+    case 'icosahedron': return new THREE.IcosahedronGeometry(p.r || 0.7);
+    case 'lathe': return createLatheGeometry();
+    case 'helix': return createHelixGeometry();
+    default: return new THREE.BoxGeometry(1, 1, 1);
+  }
+}
+
+function createLatheGeometry() {
+  const points = [];
+  points.push(new THREE.Vector2(0.05, 0));
+  points.push(new THREE.Vector2(0.4, 0.3));
+  points.push(new THREE.Vector2(0.5, 0.5));
+  points.push(new THREE.Vector2(0.45, 0.7));
+  points.push(new THREE.Vector2(0.25, 0.85));
+  points.push(new THREE.Vector2(0.2, 1.0));
+  points.push(new THREE.Vector2(0.35, 1.15));
+  points.push(new THREE.Vector2(0.38, 1.25));
+  points.push(new THREE.Vector2(0.3, 1.35));
+  points.push(new THREE.Vector2(0.05, 1.4));
+  return new THREE.LatheGeometry(points, 24);
+}
+
+function createHelixGeometry() {
+  const pts = [];
+  const turns = 3;
+  const height = 1.8;
+  const radius = 0.5;
+  const segments = turns * 30;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = t * turns * Math.PI * 2;
+    const x = radius * Math.cos(angle);
+    const z = radius * Math.sin(angle);
+    const y = t * height - height / 2;
+    pts.push(new THREE.Vector3(x, y, z));
+  }
+  const curve = new THREE.CatmullRomCurve3(pts);
+  return new THREE.TubeGeometry(curve, segments, 0.12, 8, false);
+}
+
+function getDefaultParams(type) {
+  switch (type) {
+    case 'box': return { w: 1, h: 1, d: 1 };
+    case 'sphere': return { r: 0.6, segW: 32, segH: 24 };
+    case 'cylinder': return { rT: 0.6, rB: 0.6, h: 1.2, seg: 32 };
+    case 'cone': return { r: 0.6, h: 1.2, seg: 32 };
+    case 'capsule': return { r: 0.4, len: 0.8, capSeg: 8, radSeg: 16 };
+    case 'plane': return { w: 1.2, h: 1.2 };
+    case 'torus': return { r: 0.6, t: 0.2, segR: 16, segT: 32 };
+    case 'torusKnot': return { r: 0.5, t: 0.2, seg: 64, segT: 16 };
+    case 'ring': return { iR: 0.2, oR: 0.6, seg: 32 };
+    case 'tetrahedron': return { r: 0.7 };
+    case 'octahedron': return { r: 0.7 };
+    case 'dodecahedron': return { r: 0.7 };
+    case 'icosahedron': return { r: 0.7 };
+    case 'lathe': return {};
+    case 'helix': return {};
+    default: return {};
+  }
+}
+
+function getTypeLabel(type) {
+  const map = {};
+  SHAPES.forEach(s => { map[s.type] = s.label; });
+  map['library'] = '素材';
+  return map[type] || type;
+}
+
+// ============================================================
+//  物体管理
+// ============================================================
+function addObject(type) {
+  const params = getDefaultParams(type);
+  const geo = createGeometry(type, params);
+  const mat = new THREE.MeshStandardMaterial({
+    color: randomColor(),
+    metalness: 0.1,
+    roughness: 0.6,
+    envMapIntensity: 0.4,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  const id = generateId();
+  mesh.userData.id = id;
+  mesh.userData.name = `${getTypeLabel(type)} ${state.objectIdCounter}`;
+  mesh.userData.type = type;
+  mesh.userData.geometryParams = params;
+  mesh.userData.material = mat;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  // 随机偏移位置避免重叠
+  mesh.position.set(
+    (Math.random() - 0.5) * 3,
+    0.5,
+    (Math.random() - 0.5) * 3
+  );
+
+  scene.add(mesh);
+  state.objects.push(mesh);
+  saveUndoState();
+  selectObject(mesh);
+  updateOutliner();
+  updateSceneInfo();
+  showToast(`添加 ${mesh.userData.name}`);
+  return mesh;
+}
+
+function randomColor() {
+  const colors = [0x0071e3, 0x34c759, 0xff9f0a, 0xff3b30, 0xaf52de, 0x5ac8fa, 0xaed581, 0xff8a65];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function deleteSelected() {
+  if (!state.selected) return;
+  // 如果在黏土模式且正在雕刻目标，先退出黏土模式
+  if (clay.active && clay.target === state.selected) {
+    exitClayMode();
+    state.toolMode = 'select';
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tool === 'select');
+    });
+  }
+  const obj = state.selected;
+  saveUndoState();
+  const name = obj.userData.name;
+  scene.remove(obj);
+  const idx = getObjectIndex(obj.userData.id);
+  if (idx !== -1) state.objects.splice(idx, 1);
+  obj.geometry.dispose();
+  obj.material.dispose();
+  state.selected = null;
+  transformControls.detach();
+  updateOutliner();
+  updatePropertyPanel();
+  updateSceneInfo();
+  showToast(`删除 ${name}`);
+}
+
+function duplicateSelected() {
+  if (!state.selected) return;
+  saveUndoState();
+  const data = serializeObject(state.selected);
+  data.id = generateId();
+  data.name = `${state.selected.userData.name} (副本)`;
+  // 偏移位置
+  data.position[0] += 0.8;
+  data.position[2] += 0.8;
+  const mesh = deserializeObject(data);
+  scene.add(mesh);
+  state.objects.push(mesh);
+  selectObject(mesh);
+  updateOutliner();
+  updateSceneInfo();
+  showToast(`复制 ${mesh.userData.name}`);
+}
+
+// ============================================================
+//  选择系统
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function selectObject(obj) {
+  state.selected = obj;
+  if (obj && state.toolMode !== 'select') {
+    transformControls.attach(obj);
+  } else if (obj && state.toolMode === 'select') {
+    transformControls.detach();
+  } else {
+    transformControls.detach();
+  }
+  updatePropertyPanel();
+  updateOutliner();
+  updateGizmoIndicator();
+}
+
+function onPointerDown(event) {
+  if (state.transformActive) return;
+  if (clay.active) return; // 黏土模式自行处理
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObjects(state.objects, false);
+
+  if (intersects.length > 0) {
+    const obj = intersects[0].object;
+    selectObject(obj);
+  } else {
+    // 点击空白取消选择
+    state.selected = null;
+    transformControls.detach();
+    updatePropertyPanel();
+    updateOutliner();
+    updateGizmoIndicator();
+  }
+}
+
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+function selectAll() {
+  if (state.objects.length === 0) return;
+  // 选中第一个物体（简单多选暂未实现）
+  selectObject(state.objects[0]);
+  showToast(`选中 ${state.objects[0].userData.name}（Tab 切换）`);
+}
+
+function selectNext() {
+  if (state.objects.length === 0) return;
+  const idx = state.selected ? getObjectIndex(state.selected.userData.id) : -1;
+  const nextIdx = (idx + 1) % state.objects.length;
+  selectObject(state.objects[nextIdx]);
+}
+
+// ============================================================
+//  UI 更新
+// ============================================================
+function updatePropertyPanel() {
+  const obj = state.selected;
+  const nameInput = document.getElementById('obj-name');
+  const typeSpan = document.getElementById('obj-type');
+
+  if (!obj) {
+    nameInput.value = '未选择';
+    nameInput.disabled = true;
+    typeSpan.textContent = '-';
+    document.getElementById('pos-x').value = 0;
+    document.getElementById('pos-y').value = 0;
+    document.getElementById('pos-z').value = 0;
+    document.getElementById('rot-x').value = 0;
+    document.getElementById('rot-y').value = 0;
+    document.getElementById('rot-z').value = 0;
+    document.getElementById('scl-x').value = 1;
+    document.getElementById('scl-y').value = 1;
+    document.getElementById('scl-z').value = 1;
+    return;
+  }
+
+  nameInput.value = obj.userData.name;
+  nameInput.disabled = false;
+  typeSpan.textContent = getTypeLabel(obj.userData.type);
+
+  document.getElementById('pos-x').value = obj.position.x.toFixed(2);
+  document.getElementById('pos-y').value = obj.position.y.toFixed(2);
+  document.getElementById('pos-z').value = obj.position.z.toFixed(2);
+
+  const deg = (v) => THREE.MathUtils.radToDeg(v).toFixed(1);
+  document.getElementById('rot-x').value = deg(obj.rotation.x);
+  document.getElementById('rot-y').value = deg(obj.rotation.y);
+  document.getElementById('rot-z').value = deg(obj.rotation.z);
+
+  document.getElementById('scl-x').value = obj.scale.x.toFixed(2);
+  document.getElementById('scl-y').value = obj.scale.y.toFixed(2);
+  document.getElementById('scl-z').value = obj.scale.z.toFixed(2);
+
+  const mat = obj.userData.material;
+  if (mat) {
+    document.getElementById('mat-color').value = '#' + mat.color.getHexString();
+    document.getElementById('mat-metal').value = mat.metalness;
+    document.getElementById('mat-rough').value = mat.roughness;
+    document.getElementById('mat-wireframe').checked = mat.wireframe;
+    document.getElementById('mat-shading').value = mat.flatShading ? 'flat' : 'smooth';
+  }
+}
+
+function updateOutliner() {
+  const list = document.getElementById('outliner-list');
+  list.innerHTML = '';
+  state.objects.forEach(obj => {
+    const li = document.createElement('li');
+    li.dataset.id = obj.userData.id;
+    if (state.selected && state.selected.userData.id === obj.userData.id) {
+      li.classList.add('selected');
+    }
+    const icon = document.createElement('span');
+    icon.className = 'obj-icon';
+    icon.style.background = '#' + obj.userData.material.color.getHexString();
+    icon.textContent = '◇';
+    const name = document.createElement('span');
+    name.className = 'obj-name';
+    name.textContent = obj.userData.name;
+    li.appendChild(icon);
+    li.appendChild(name);
+    li.addEventListener('click', () => {
+      selectObject(obj);
+    });
+    list.appendChild(li);
+  });
+}
+
+function updateSceneInfo() {
+  document.getElementById('scene-info').textContent = `物体数: ${state.objects.length}`;
+}
+
+function updateGizmoIndicator() {
+  const el = document.getElementById('gizmo-indicator');
+  if (ghost.active) {
+    el.textContent = '🌊 浮灵模式';
+    el.classList.add('show');
+  } else if (state.toolMode === 'clay' && clay.target) {
+    el.textContent = `✋ 黏土: ${clay.target.userData.name}`;
+    el.classList.add('show');
+  } else if (state.selected && state.toolMode !== 'select') {
+    const modeMap = { translate: '移动', rotate: '旋转', scale: '缩放' };
+    el.textContent = `${modeMap[state.toolMode]}: ${state.selected.userData.name}`;
+    el.classList.add('show');
+  } else if (state.selected) {
+    el.textContent = `选择: ${state.selected.userData.name}`;
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+    el.textContent = '';
+  }
+}
+
+// ============================================================
+//  属性面板双向绑定
+// ============================================================
+function setupPropertyBindings() {
+  const bindings = [
+    { id: 'pos-x', fn: (v) => { if (state.selected) { state.selected.position.x = parseFloat(v); } } },
+    { id: 'pos-y', fn: (v) => { if (state.selected) { state.selected.position.y = parseFloat(v); } } },
+    { id: 'pos-z', fn: (v) => { if (state.selected) { state.selected.position.z = parseFloat(v); } } },
+    { id: 'rot-x', fn: (v) => { if (state.selected) { state.selected.rotation.x = THREE.MathUtils.degToRad(parseFloat(v)); } } },
+    { id: 'rot-y', fn: (v) => { if (state.selected) { state.selected.rotation.y = THREE.MathUtils.degToRad(parseFloat(v)); } } },
+    { id: 'rot-z', fn: (v) => { if (state.selected) { state.selected.rotation.z = THREE.MathUtils.degToRad(parseFloat(v)); } } },
+    { id: 'scl-x', fn: (v) => { if (state.selected) { state.selected.scale.x = Math.max(0.01, parseFloat(v)); } } },
+    { id: 'scl-y', fn: (v) => { if (state.selected) { state.selected.scale.y = Math.max(0.01, parseFloat(v)); } } },
+    { id: 'scl-z', fn: (v) => { if (state.selected) { state.selected.scale.z = Math.max(0.01, parseFloat(v)); } } },
+  ];
+
+  bindings.forEach(({ id, fn }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      fn(el.value);
+      if (state.selected) {
+        updateOutliner();
+        // Save undo on mouse up (change event instead)
+      }
+    });
+    el.addEventListener('change', () => {
+      if (state.selected) saveUndoState();
+    });
+  });
+
+  // 材质
+  document.getElementById('mat-color').addEventListener('input', (e) => {
+    if (!state.selected) return;
+    state.selected.userData.material.color.set(e.target.value);
+  });
+  document.getElementById('mat-color').addEventListener('change', () => {
+    if (state.selected) saveUndoState();
+  });
+
+  document.getElementById('mat-metal').addEventListener('input', (e) => {
+    if (!state.selected) return;
+    state.selected.userData.material.metalness = parseFloat(e.target.value);
+  });
+  document.getElementById('mat-metal').addEventListener('change', () => {
+    if (state.selected) saveUndoState();
+  });
+
+  document.getElementById('mat-rough').addEventListener('input', (e) => {
+    if (!state.selected) return;
+    state.selected.userData.material.roughness = parseFloat(e.target.value);
+  });
+  document.getElementById('mat-rough').addEventListener('change', () => {
+    if (state.selected) saveUndoState();
+  });
+
+  document.getElementById('mat-wireframe').addEventListener('change', (e) => {
+    if (!state.selected) return;
+    state.selected.userData.material.wireframe = e.target.checked;
+    saveUndoState();
+  });
+
+  document.getElementById('mat-shading').addEventListener('change', (e) => {
+    if (!state.selected) return;
+    const mat = state.selected.userData.material;
+    mat.flatShading = e.target.value === 'flat';
+    mat.needsUpdate = true;
+    saveUndoState();
+  });
+
+  // 名称
+  document.getElementById('obj-name').addEventListener('change', (e) => {
+    if (!state.selected) return;
+    state.selected.userData.name = e.target.value;
+    updateOutliner();
+    updateGizmoIndicator();
+    saveUndoState();
+  });
+
+  // -------- 黏土控制绑定 ----------
+  document.getElementById('clay-brush-type').addEventListener('change', (e) => {
+    clay.brushType = e.target.value;
+  });
+
+  document.getElementById('clay-size').addEventListener('input', (e) => {
+    clay.brushSize = parseFloat(e.target.value);
+    document.getElementById('clay-size-val').textContent = clay.brushSize.toFixed(2);
+    // 更新光标大小
+    if (clay.cursor) {
+      clay.cursor.scale.set(clay.brushSize, clay.brushSize, clay.brushSize);
+    }
+  });
+
+  document.getElementById('clay-strength').addEventListener('input', (e) => {
+    clay.brushStrength = parseFloat(e.target.value);
+    document.getElementById('clay-strength-val').textContent = clay.brushStrength.toFixed(2);
+  });
+
+  document.getElementById('clay-subdivide').addEventListener('click', () => {
+    if (!clay.target) { showToast('请先进入黏土模式'); return; }
+    subdivideTargetMesh(1);
+  });
+}
+
+// ============================================================
+//  工具模式切换
+// ============================================================
+function setToolMode(mode) {
+  // 浮灵模式切换
+  if (mode === 'ghost') {
+    if (ghost.active) {
+      exitGhostMode();
+      const prevMode = ghost.prevActiveTool !== 'ghost' ? ghost.prevActiveTool : 'select';
+      state.toolMode = prevMode;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === prevMode);
+      });
+      if (prevMode !== 'select' && state.selected) {
+        transformControls.setMode(prevMode);
+        transformControls.attach(state.selected);
+      } else {
+        transformControls.detach();
+      }
+      updateGizmoIndicator();
+      return;
+    }
+    enterGhostMode();
+    return;
+  }
+
+  // 如果当前在浮灵模式，切换到其他模式时先退出
+  if (ghost.active) {
+    exitGhostMode();
+  }
+
+  // 黏土模式切换
+  if (mode === 'clay') {
+    if (state.toolMode === 'clay') {
+      exitClayMode();
+      state.toolMode = 'select';
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === 'select');
+      });
+      updateGizmoIndicator();
+      return;
+    }
+    // 如果从其他模式切换到黏土，先退出transform控件
+    if (state.toolMode !== 'select') {
+      transformControls.detach();
+    }
+    state.toolMode = mode;
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tool === mode);
+    });
+    enterClayMode();
+    updateGizmoIndicator();
+    return;
+  }
+
+  // 从黏土模式切换到其他模式
+  if (state.toolMode === 'clay') {
+    exitClayMode();
+  }
+
+  state.toolMode = mode;
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tool === mode);
+  });
+  if (mode === 'select') {
+    transformControls.detach();
+    transformControls.setMode('translate');
+  } else {
+    transformControls.setMode(mode);
+    if (state.selected) {
+      transformControls.attach(state.selected);
+    }
+  }
+  updateGizmoIndicator();
+}
+
+// ============================================================
+//  浮灵模式 (Ghost/Fly) — Roblox 风格
+// ============================================================
+const ghost = {
+  active: false,
+  yaw: 0,
+  pitch: 0,
+  speed: 4,
+  keys: { forward: false, backward: false, left: false, right: false, up: false, down: false },
+  euler: new THREE.Euler(0, 0, 0, 'YXZ'),
+  quat: new THREE.Quaternion(),
+  vec: new THREE.Vector3(),
+  onPointerLockChange: null,
+  onMouseMove: null,
+  onKeyDown: null,
+  onKeyUp: null,
+  prevActiveTool: 'select',
+};
+
+function toggleGhostMode() {
+  if (ghost.active) {
+    exitGhostMode();
+  } else {
+    enterGhostMode();
+  }
+}
+
+function enterGhostMode() {
+  if (clay.active) exitClayMode();
+  if (state.toolMode === 'clay') {
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tool === 'select');
+    });
+  }
+
+  ghost.prevActiveTool = state.toolMode;
+  state.toolMode = 'ghost';
+  ghost.active = true;
+
+  // 更新工具栏按钮高亮
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tool === 'ghost');
+  });
+
+  // 禁用 OrbitControls
+  orbitControls.enabled = false;
+  transformControls.detach();
+
+  // 从当前相机初始化朝向
+  ghost.euler.setFromQuaternion(camera.quaternion, 'YXZ');
+  ghost.yaw = ghost.euler.y;
+  ghost.pitch = ghost.euler.x;
+
+  // 重置按键状态
+  ghost.keys = { forward: false, backward: false, left: false, right: false, up: false, down: false };
+
+  // 显示HUD和准星
+  document.getElementById('ghost-hud').classList.add('show');
+  document.getElementById('ghost-crosshair').classList.add('show');
+
+  // 请求指针锁定
+  renderer.domElement.requestPointerLock();
+
+  showToast('🌊 浮灵模式 · WASD 移动 · 鼠标环顾');
+  updateGizmoIndicator();
+}
+
+function exitGhostMode() {
+  if (!ghost.active) return;
+
+  ghost.active = false;
+  state.toolMode = ghost.prevActiveTool !== 'ghost' ? ghost.prevActiveTool : 'select';
+
+  // 更新工具栏
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tool === state.toolMode);
+  });
+
+  // 恢复 OrbitControls
+  orbitControls.enabled = true;
+
+  // 退出指针锁定
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+
+  // 隐藏HUD和准星
+  document.getElementById('ghost-hud').classList.remove('show');
+  document.getElementById('ghost-crosshair').classList.remove('show');
+
+  // 重置按键
+  ghost.keys = { forward: false, backward: false, left: false, right: false, up: false, down: false };
+
+  renderer.domElement.style.cursor = '';
+
+  showToast('退出浮灵模式');
+  updateGizmoIndicator();
+}
+
+function setupGhostControls() {
+  // 指针锁定变化
+  ghost.onPointerLockChange = () => {
+    if (!document.pointerLockElement && ghost.active) {
+      // 指针解锁时如果还在浮灵模式，重新请求
+      // 但允许用户通过点击外部取消 - 不自动重锁
+    }
+  };
+  document.addEventListener('pointerlockchange', ghost.onPointerLockChange);
+  document.addEventListener('mozpointerlockchange', ghost.onPointerLockChange);
+
+  // 鼠标移动 - 视角控制
+  ghost.onMouseMove = (e) => {
+    if (!ghost.active || !document.pointerLockElement) return;
+    const sensitivity = 0.002;
+    ghost.yaw -= e.movementX * sensitivity;
+    ghost.pitch -= e.movementY * sensitivity;
+    ghost.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, ghost.pitch));
+
+    ghost.euler.set(ghost.pitch, ghost.yaw, 0, 'YXZ');
+    camera.quaternion.setFromEuler(ghost.euler);
+  };
+  document.addEventListener('mousemove', ghost.onMouseMove);
+
+  // 键盘按下
+  ghost.onKeyDown = (e) => {
+    if (!ghost.active) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.code) {
+      case 'KeyW': ghost.keys.forward = true; e.preventDefault(); break;
+      case 'KeyS': ghost.keys.backward = true; e.preventDefault(); break;
+      case 'KeyA': ghost.keys.left = true; e.preventDefault(); break;
+      case 'KeyD': ghost.keys.right = true; e.preventDefault(); break;
+      case 'Space': ghost.keys.up = true; e.preventDefault(); break;
+      case 'ShiftLeft': case 'ShiftRight': ghost.keys.down = true; e.preventDefault(); break;
+    }
+  };
+  document.addEventListener('keydown', ghost.onKeyDown);
+
+  // 键盘释放
+  ghost.onKeyUp = (e) => {
+    if (!ghost.active) return;
+    switch (e.code) {
+      case 'KeyW': ghost.keys.forward = false; e.preventDefault(); break;
+      case 'KeyS': ghost.keys.backward = false; e.preventDefault(); break;
+      case 'KeyA': ghost.keys.left = false; e.preventDefault(); break;
+      case 'KeyD': ghost.keys.right = false; e.preventDefault(); break;
+      case 'Space': ghost.keys.up = false; e.preventDefault(); break;
+      case 'ShiftLeft': case 'ShiftRight': ghost.keys.down = false; e.preventDefault(); break;
+    }
+  };
+  document.addEventListener('keyup', ghost.onKeyUp);
+
+  // 点击视口时重新锁定指针
+  renderer.domElement.addEventListener('click', () => {
+    if (ghost.active && !document.pointerLockElement) {
+      renderer.domElement.requestPointerLock();
+    }
+  });
+}
+
+function updateGhostMovement(delta) {
+  if (!ghost.active) return;
+
+  const speed = ghost.speed * delta;
+  const dir = ghost.vec.set(0, 0, 0);
+
+  // 获取相机朝向向量
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  const up = new THREE.Vector3(0, 1, 0);
+
+  // 水平移动（忽略俯仰影响）
+  forward.y = 0;
+  forward.normalize();
+  right.y = 0;
+  right.normalize();
+
+  if (ghost.keys.forward) dir.add(forward);
+  if (ghost.keys.backward) dir.sub(forward);
+  if (ghost.keys.left) dir.sub(right);
+  if (ghost.keys.right) dir.add(right);
+  if (ghost.keys.up) dir.add(up);
+  if (ghost.keys.down) dir.sub(up);
+
+  if (dir.length() > 0) {
+    dir.normalize().multiplyScalar(speed);
+    camera.position.add(dir);
+    orbitControls.target.copy(camera.position);
+  }
+}
+
+// ============================================================
+//  视口视角控制
+// ============================================================
+function setView(viewName) {
+  const dist = 8;
+  let pos;
+  switch (viewName) {
+    case 'front': pos = [0, 0, dist]; break;
+    case 'back': pos = [0, 0, -dist]; break;
+    case 'top': pos = [0, dist, 0.01]; break;
+    case 'bottom': pos = [0, -dist, 0.01]; break;
+    case 'left': pos = [-dist, 0, 0]; break;
+    case 'right': pos = [dist, 0, 0]; break;
+    default: pos = [6, 4, 8]; break;
+  }
+  camera.position.set(pos[0], pos[1], pos[2]);
+  camera.lookAt(0, 0, 0);
+  orbitControls.target.set(0, 0, 0);
+  orbitControls.update();
+}
+
+function toggleOrtho() {
+  state.isOrtho = !state.isOrtho;
+  if (state.isOrtho) {
+    const half = 6;
+    const orthoCamera = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, 100);
+    orthoCamera.position.copy(camera.position);
+    orthoCamera.quaternion.copy(camera.quaternion);
+    // We need to swap cameras, but OrbitControls doesn't support this easily.
+    // For simplicity, we'll just show a toast.
+    showToast('正交模式（实验性，需刷新）');
+  } else {
+    showToast('透视模式');
+  }
+  document.querySelector('[data-view="perspective"]').textContent = state.isOrtho ? '□' : '3D';
+}
+
+// ============================================================
+//  导出 / 导入
+// ============================================================
+function exportSceneJSON() {
+  if (state.objects.length === 0) { showToast('场景为空'); return; }
+  const data = state.objects.map(o => serializeObject(o));
+  const blob = new Blob([JSON.stringify({ version: 1, objects: data }, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, 'scene.json');
+  showToast('场景已导出为 JSON');
+}
+
+function exportGLB() {
+  if (state.objects.length === 0) { showToast('场景为空'); return; }
+  showToast('正在导出 GLB...');
+  // 使用 Three.js GLTFExporter
+  import('three/addons/exporters/GLTFExporter.js').then(({ GLTFExporter }) => {
+    const exporter = new GLTFExporter();
+    const sceneCopy = new THREE.Scene();
+    state.objects.forEach(o => {
+      const clone = o.clone();
+      sceneCopy.add(clone);
+    });
+    exporter.parse(sceneCopy, (glb) => {
+      const blob = new Blob([glb], { type: 'application/octet-stream' });
+      downloadBlob(blob, 'scene.glb');
+      showToast('导出 GLB 完成');
+    }, (err) => {
+      console.error(err);
+      showToast('导出失败');
+    }, { binary: true });
+  }).catch(() => {
+    showToast('GLB导出器加载失败，请检查网络');
+  });
+}
+
+function importSceneJSON(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.objects || !Array.isArray(data.objects)) throw new Error('无效格式');
+      saveUndoState();
+      data.objects.forEach(d => {
+        const mesh = deserializeObject(d);
+        scene.add(mesh);
+        state.objects.push(mesh);
+      });
+      updateOutliner();
+      updateSceneInfo();
+      showToast(`导入 ${data.objects.length} 个物体`);
+    } catch (err) {
+      showToast('文件格式错误: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importSceneGLB(file) {
+  showToast('正在导入 GLB...');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+      const loader = new GLTFLoader();
+      const arrayBuffer = e.target.result;
+      const result = await new Promise((resolve, reject) => {
+        loader.parse(arrayBuffer, '', resolve, reject);
+      });
+
+      const gltf = result;
+      const imported = [];
+
+      gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+          // 生成唯一 ID 和名称
+          const id = generateId();
+          const name = child.name || `导入物体 ${state.objectIdCounter}`;
+          child.userData.id = id;
+          child.userData.name = name;
+          child.userData.type = child.geometry.type;
+          child.userData.geometryParams = getDefaultParams('box');
+          child.userData.material = child.material;
+
+          // 确保材质是 MeshStandardMaterial
+          if (!child.material.isMeshStandardMaterial) {
+            const srcColor = child.material.color ? child.material.color.getHex() : 0xcccccc;
+            const mat = new THREE.MeshStandardMaterial({
+              color: srcColor,
+              metalness: child.material.metalness ?? 0.1,
+              roughness: child.material.roughness ?? 0.6,
+            });
+            child.material = mat;
+            child.userData.material = mat;
+          }
+          // 也确保现有 StandardMaterial 的 userData 引用正确
+          child.userData.material = child.material;
+
+          child.castShadow = true;
+          child.receiveShadow = true;
+          imported.push(child);
+        }
+      });
+
+      if (imported.length === 0) {
+        showToast('GLB 文件中未找到网格物体');
+        return;
+      }
+
+      saveUndoState();
+      imported.forEach(mesh => {
+        scene.add(mesh);
+        state.objects.push(mesh);
+      });
+      updateOutliner();
+      updateSceneInfo();
+      selectObject(imported[0]);
+      showToast(`导入 GLB: ${imported.length} 个物体`);
+    } catch (err) {
+      console.error(err);
+      showToast('GLB 导入失败: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ============================================================
+//  素材库 (LocalStorage — 与捏土工坊共享)
+// ============================================================
+const LIBRARY_KEY = 'clay_material_library';
+
+function getLibrary() {
+  try { return JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveLibraryData(data) {
+  localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
+}
+
+function openLibraryModal() {
+  const grid = document.getElementById('lib-grid');
+  const lib = getLibrary();
+
+  if (lib.length === 0) {
+    grid.innerHTML = '<div class="lib-empty">素材库为空<br>前往 <a href="clay.html" style="color:var(--blue);">🫱 捏土工坊</a> 雕刻模型后存入</div>';
+  } else {
+    grid.innerHTML = lib.map((item, idx) => `
+      <div class="lib-item" data-idx="${idx}">
+        <div class="lib-icon" style="background:${item.color || '#c97d5e'}">🫱</div>
+        <div class="lib-name">${item.name || '未命名'}</div>
+        <div class="lib-info">${Math.round(item.vertexCount || 0)} 顶点</div>
+        <div class="lib-del" data-idx="${idx}" title="删除">✕ 删除</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('library-modal').classList.add('open');
+
+  // Bind events
+  grid.querySelectorAll('.lib-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('lib-del')) return;
+      const idx = parseInt(el.dataset.idx);
+      loadFromLibrary(idx);
+    });
+  });
+  grid.querySelectorAll('.lib-del').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.idx);
+      deleteLibraryItem(idx);
+    });
+  });
+}
+
+function closeLibraryModal() {
+  document.getElementById('library-modal').classList.remove('open');
+}
+
+function deleteLibraryItem(idx) {
+  const lib = getLibrary();
+  const name = lib[idx]?.name || '未知';
+  lib.splice(idx, 1);
+  saveLibraryData(lib);
+  openLibraryModal();
+  showToast(`已删除素材 "${name}"`);
+}
+
+function loadFromLibrary(idx) {
+  const lib = getLibrary();
+  const item = lib[idx];
+  if (!item) return;
+
+  saveUndoState();
+
+  // Build geometry from stored vertices
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(item.vertices), 3));
+  if (item.normals && item.normals.length > 0) {
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(item.normals), 3));
+  }
+  if (item.uvs && item.uvs.length > 0) {
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(item.uvs), 2));
+  }
+  if (!item.normals || item.normals.length === 0) {
+    geo.computeVertexNormals();
+  }
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: item.color || '#c97d5e',
+    roughness: item.roughness ?? 0.7,
+    metalness: item.metalness ?? 0,
+    envMapIntensity: 0.4,
+  });
+
+  const mesh = new THREE.Mesh(geo, mat);
+  const id = generateId();
+  mesh.userData.id = id;
+  mesh.userData.name = item.name || '素材模型';
+  mesh.userData.type = 'library';
+  mesh.userData.geometryParams = { fromLibrary: true, libraryId: item.id };
+  mesh.userData.material = mat;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  // Random position offset
+  mesh.position.set(
+    (Math.random() - 0.5) * 3,
+    0.5,
+    (Math.random() - 0.5) * 3
+  );
+
+  scene.add(mesh);
+  state.objects.push(mesh);
+  selectObject(mesh);
+  updateOutliner();
+  updateSceneInfo();
+  closeLibraryModal();
+  showToast(`已导入素材 "${item.name}" 🫱`);
+}
+
+// 关闭素材库弹窗（点击遮罩）
+document.getElementById('library-modal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeLibraryModal();
+});
+
+// ============================================================
+//  Toast 通知
+// ============================================================
+let toastTimeout = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ============================================================
+//  FPS 计数器
+// ============================================================
+let frameCount = 0;
+let lastFpsTime = 0;
+function updateFPS(time) {
+  frameCount++;
+  if (time - lastFpsTime >= 1000) {
+    document.getElementById('fps-counter').textContent = `FPS: ${frameCount}`;
+    frameCount = 0;
+    lastFpsTime = time;
+  }
+}
+
+// ============================================================
+//  动画循环
+// ============================================================
+let lastTime = 0;
+function animate(time) {
+  requestAnimationFrame(animate);
+  const delta = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0.016;
+  lastTime = time;
+
+  if (ghost.active) {
+    updateGhostMovement(delta);
+  } else {
+    orbitControls.update();
+  }
+  renderer.render(scene, camera);
+  updateFPS(time);
+}
+
+// ============================================================
+//  图形选择弹窗
+// ============================================================
+function openShapeModal() {
+  const grid = document.getElementById('shape-grid');
+  grid.innerHTML = '';
+  SHAPES.forEach(({ type, label, svg }) => {
+    const btn = document.createElement('button');
+    btn.className = 'modal-shape-btn';
+    btn.innerHTML = `${svg}<span class="shape-label">${label}</span>`;
+    btn.addEventListener('click', () => {
+      addObject(type);
+      closeShapeModal();
+    });
+    grid.appendChild(btn);
+  });
+  document.getElementById('shape-modal').classList.add('open');
+}
+
+function closeShapeModal() {
+  document.getElementById('shape-modal').classList.remove('open');
+}
+
+// 键盘 Escape 关闭弹窗
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('shape-modal');
+    if (modal.classList.contains('open')) closeShapeModal();
+  }
+});
+
+// ============================================================
+//  面板拖拽调整宽度
+// ============================================================
+function setupPanelResizer() {
+  const resizer = document.getElementById('panel-resizer');
+  const root = document.documentElement;
+  let startX = 0, startWidth = 0;
+
+  function onDragStart(e) {
+    e.preventDefault();
+    startX = e.clientX;
+    startWidth = parseInt(getComputedStyle(root).getPropertyValue('--panel-w'));
+    resizer.classList.add('active');
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', onDragEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  function onDrag(e) {
+    const dx = startX - e.clientX;
+    const newWidth = Math.max(180, Math.min(500, startWidth + dx));
+    root.style.setProperty('--panel-w', newWidth + 'px');
+    // 实时更新分隔条位置
+    resizer.style.right = newWidth + 'px';
+  }
+
+  function onDragEnd() {
+    resizer.classList.remove('active');
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  resizer.addEventListener('mousedown', onDragStart);
+}
+
+// ============================================================
+//  右键菜单 — 场景集合
+// ============================================================
+let contextTarget = null;
+
+function setupContextMenu() {
+  const menu = document.getElementById('context-menu');
+
+  // 右键显示菜单（使用事件委托）
+  document.getElementById('outliner-list').addEventListener('contextmenu', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    e.preventDefault();
+    const id = li.dataset.id;
+    const obj = getObjectById(id);
+    if (!obj) return;
+    contextTarget = obj;
+    selectObject(obj);
+
+    // 定位菜单
+    const x = Math.min(e.clientX, window.innerWidth - 160);
+    const y = Math.min(e.clientY, window.innerHeight - 140);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.add('open');
+  });
+
+  // 菜单项点击
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('.context-menu-item');
+    if (!item) return;
+    const action = item.dataset.action;
+    if (!contextTarget) return;
+
+    switch (action) {
+      case 'duplicate':
+        duplicateObject(contextTarget);
+        break;
+      case 'delete':
+        // 选中目标再删除
+        selectObject(contextTarget);
+        deleteSelected();
+        break;
+      case 'rename':
+        renameObject(contextTarget);
+        break;
+    }
+    closeContextMenu();
+  });
+
+  // 点击其他地方关闭菜单
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.context-menu')) closeContextMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeContextMenu();
+  });
+}
+
+function closeContextMenu() {
+  document.getElementById('context-menu').classList.remove('open');
+  contextTarget = null;
+}
+
+function duplicateObject(obj) {
+  if (!obj) return;
+  saveUndoState();
+  const data = serializeObject(obj);
+  data.id = generateId();
+  data.name = `${obj.userData.name} (副本)`;
+  data.position[0] += 0.8;
+  data.position[2] += 0.8;
+  const mesh = deserializeObject(data);
+  scene.add(mesh);
+  state.objects.push(mesh);
+  selectObject(mesh);
+  updateOutliner();
+  updateSceneInfo();
+  showToast(`复制 ${mesh.userData.name}`);
+}
+
+function renameObject(obj) {
+  if (!obj) return;
+  const newName = prompt('输入新名称：', obj.userData.name);
+  if (newName && newName.trim()) {
+    obj.userData.name = newName.trim();
+    updateOutliner();
+    updatePropertyPanel();
+    updateGizmoIndicator();
+    saveUndoState();
+    showToast(`已重命名为 ${newName}`);
+  }
+}
+
+// ============================================================
+//  UI 事件绑定
+// ============================================================
+function setupUI() {
+  // 工具按钮
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => setToolMode(btn.dataset.tool));
+  });
+
+  // 添加物体（弹窗选择）
+  document.querySelectorAll('.tool-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      switch (action) {
+        case 'delete': deleteSelected(); break;
+        case 'duplicate': duplicateSelected(); break;
+        case 'frame-selected': frameSelected(); break;
+      }
+    });
+  });
+
+  // 添加图形弹窗
+  document.getElementById('btn-add-shape').addEventListener('click', openShapeModal);
+  document.getElementById('shape-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeShapeModal();
+  });
+
+  // 顶栏按钮
+  document.querySelectorAll('.header-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      switch (action) {
+        case 'new-scene': newScene(); break;
+        case 'save-scene': exportSceneJSON(); break;
+        case 'load-scene': document.getElementById('file-input').click(); break;
+        case 'export-glb': exportGLB(); break;
+        case 'undo': undo(); break;
+        case 'redo': redo(); break;
+        case 'open-library': openLibraryModal(); break;
+      }
+    });
+  });
+
+  // 视口按钮
+  document.querySelectorAll('.viewport-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      if (view === 'perspective') {
+        toggleOrtho();
+      } else {
+        setView(view);
+      }
+    });
+  });
+
+  document.querySelector('[data-action="frame-selected"]').addEventListener('click', frameSelected);
+
+  document.querySelector('[data-action="reset-view"]').addEventListener('click', () => {
+    camera.position.set(6, 4, 8);
+    orbitControls.target.set(0, 0, 0);
+    orbitControls.update();
+    showToast('重置视角');
+  });
+
+  document.querySelector('[data-action="toggle-grid"]').addEventListener('click', () => {
+    gridHelper.visible = !gridHelper.visible;
+    showToast(gridHelper.visible ? '显示网格' : '隐藏网格');
+  });
+
+  document.querySelector('[data-action="toggle-axes"]').addEventListener('click', () => {
+    axesHelper.visible = !axesHelper.visible;
+    showToast(axesHelper.visible ? '显示坐标轴' : '隐藏坐标轴');
+  });
+
+  // 文件输入
+  document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.json')) {
+      importSceneJSON(file);
+    } else if (name.endsWith('.glb') || name.endsWith('.gltf')) {
+      importSceneGLB(file);
+    } else {
+      showToast('支持 .json / .glb / .gltf 格式');
+    }
+    e.target.value = '';
+  });
+}
+
+function newScene() {
+  if (state.objects.length > 0 && !confirm('确定要新建场景？当前修改将丢失。')) return;
+  if (clay.active) exitClayMode();
+  state.toolMode = 'select';
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tool === 'select');
+  });
+  state.objects.forEach(o => {
+    scene.remove(o);
+    o.geometry.dispose();
+    o.material.dispose();
+  });
+  state.objects = [];
+  state.selected = null;
+  state.undoStack = [];
+  state.redoStack = [];
+  transformControls.detach();
+  updateOutliner();
+  updatePropertyPanel();
+  updateSceneInfo();
+  updateGizmoIndicator();
+  showToast('新建场景');
+}
+
+function frameSelected() {
+  if (!state.selected) {
+    // 适配所有物体
+    if (state.objects.length === 0) return;
+    const box = new THREE.Box3();
+    state.objects.forEach(o => box.expandByObject(o));
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const dist = maxDim * 1.5 + 2;
+    camera.position.set(center.x + dist * 0.6, center.y + dist * 0.4, center.z + dist * 0.6);
+    orbitControls.target.copy(center);
+    orbitControls.update();
+  } else {
+    const box = new THREE.Box3().setFromObject(state.selected);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const dist = maxDim * 2 + 1;
+    camera.position.set(center.x + dist * 0.6, center.y + dist * 0.4, center.z + dist * 0.6);
+    orbitControls.target.copy(center);
+    orbitControls.update();
+  }
+}
+
+// ============================================================
+//  键盘快捷键
+// ============================================================
+function setupKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    // 忽略输入框内的快捷键
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const key = e.key.toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+
+    if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    if (ctrl && key === 'z' && e.shiftKey) { e.preventDefault(); redo(); }
+    if (ctrl && key === 'y') { e.preventDefault(); redo(); }
+    if (key === 'g') { e.preventDefault(); setToolMode('ghost'); return; }
+    if (ghost.active) return; // 浮灵模式下忽略其他工具快捷键
+    if (key === 'q') { e.preventDefault(); setToolMode('select'); }
+    if (key === 'w') { e.preventDefault(); setToolMode('translate'); }
+    if (key === 'e') { e.preventDefault(); setToolMode('rotate'); }
+    if (key === 'r') { e.preventDefault(); setToolMode('scale'); }
+    if (key === 't') { e.preventDefault(); setToolMode('clay'); }
+    if (key === 'f') { e.preventDefault(); frameSelected(); }
+    if (key === 'delete' || key === 'backspace') { e.preventDefault(); deleteSelected(); }
+    if (key === 'd' && e.shiftKey) { e.preventDefault(); duplicateSelected(); }
+    if (key === 'a' && ctrl) { e.preventDefault(); selectAll(); }
+    if (key === 'home') { e.preventDefault(); 
+      camera.position.set(6, 4, 8);
+      orbitControls.target.set(0, 0, 0);
+      orbitControls.update();
+    }
+    if (key === 'tab') { e.preventDefault(); selectNext(); }
+  });
+}
+
+// ============================================================
+//  窗口自适应
+// ============================================================
+function onResize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+window.addEventListener('resize', onResize);
+// 也用 ResizeObserver 更准确
+new ResizeObserver(onResize).observe(viewport);
+
+// ============================================================
+//  初始化
+// ============================================================
+function init() {
+  initClay();
+  setupUI();
+  setupKeyboard();
+  setupGhostControls();
+  setupPanelResizer();
+  setupContextMenu();
+  setupPropertyBindings();
+  updateOutliner();
+  updateSceneInfo();
+  updateGizmoIndicator();
+  animate(0);
+
+  // 默认添加几个示例物体
+  const box = addObject('box');
+  box.position.set(0, 0.5, 0);
+  box.userData.material.color.setHex(0x0071e3);
+  saveUndoState();
+
+  const sphere = addObject('sphere');
+  sphere.position.set(2.2, 0.6, 0.5);
+  sphere.userData.material.color.setHex(0xff9f0a);
+  saveUndoState();
+
+  const cyl = addObject('cylinder');
+  cyl.position.set(-2.0, 0.6, -0.8);
+  cyl.userData.material.color.setHex(0x34c759);
+  saveUndoState();
+
+  // 默认选中第一个物体
+  selectObject(state.objects[0]);
+  updateOutliner();
+  updatePropertyPanel();
+  updateGizmoIndicator();
+
+  showToast('Model3D 已就绪 · Q/W/E/R 切换工具');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Model3D · 三维建模器</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ===== 顶栏 ===== -->
+      <div id="header">
+        <span class="logo">◈ Model3D</span>
+        <div class="header-sep"></div>
+        <button class="header-btn" data-action="new-scene">新建场景</button>
+        <button class="header-btn" data-action="save-scene">💾 保存</button>
+        <button class="header-btn" data-action="load-scene">📂 加载</button>
+        <button class="header-btn" data-action="export-glb">⬇ 导出GLB</button>
+        <div class="header-sep"></div>
+        <button class="header-btn" data-action="undo" title="撤销 (Ctrl+Z)">↩ 撤销</button>
+        <button class="header-btn" data-action="redo" title="重做 (Ctrl+Shift+Z)">↪ 重做</button>
+        <div class="header-sep"></div>
+        <button class="header-btn clay-nav-btn" id="btn-clay-studio" title="打开捏土工作室">🫱 捏土</button>
+        <button class="header-btn" id="btn-open-library" title="从素材库导入模型">📦 素材库</button>
+        <button class="header-btn ai-nav-btn" id="btn-ai-model" title="AI生成模型">🤖 AI建模</button>
+        <div class="header-sep"></div>
+        <span style="color:var(--gray-400);font-size:11px;margin-left:auto" id="fps-counter">FPS: --</span>
+      </div>
+
+      <!-- ===== 左侧工具栏 ===== -->
+      <div id="toolbar">
+        <button class="tool-btn active" data-tool="select" title="选择 (Q)">
+          <svg viewBox="0 0 24 24"><path d="M4 3l15 10-7 2-3 7z"/></svg>
+          <span class="label">选择</span>
+        </button>
+        <button class="tool-btn" data-tool="translate" title="移动 (W)">
+          <svg viewBox="0 0 24 24"><path d="M12 2l-4 4h3v5H6V8L2 12l4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3z"/></svg>
+          <span class="label">移动</span>
+        </button>
+        <button class="tool-btn" data-tool="rotate" title="旋转 (E)">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15.75-1.23-4-2.37V7z"/></svg>
+          <span class="label">旋转</span>
+        </button>
+        <button class="tool-btn" data-tool="scale" title="缩放 (R)">
+          <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+          <span class="label">缩放</span>
+        </button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" data-tool="clay" title="黏土雕刻 (T)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span class="label">黏土</span>
+        </button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" id="btn-add-shape" title="添加图形">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>
+          <span class="label">添加</span>
+        </button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" data-action="duplicate" title="复制 (Shift+D)">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          <span class="label">复制</span>
+        </button>
+        <button class="tool-btn btn-danger" data-action="delete" title="删除 (Delete)">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          <span class="label">删除</span>
+        </button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" data-tool="ghost" title="浮灵模式 (G)">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2zm0-4h2v2h-2z" fill="currentColor"/></svg>
+          <span class="label">浮灵</span>
+        </button>
+      </div>
+
+      <!-- ===== 3D视口 ===== -->
+      <div id="viewport">
+        <div id="gizmo-indicator">选择</div>
+        <div id="viewport-controls-overlay">
+          <button class="viewport-btn" data-view="perspective" title="透视/正交切换">3D</button>
+          <button class="viewport-btn" data-view="front" title="前视图">前</button>
+          <button class="viewport-btn" data-view="top" title="顶视图">顶</button>
+          <button class="viewport-btn" data-view="right" title="右视图">右</button>
+          <button class="viewport-btn" data-action="frame-selected" title="聚焦选中 (F)">⊡</button>
+          <button class="viewport-btn" data-action="reset-view" title="重置视角 (Home)">⌂</button>
+          <div style="height:2px"></div>
+          <button class="viewport-btn" data-action="toggle-grid" title="切换网格" style="font-size:9px">▦</button>
+          <button class="viewport-btn" data-action="toggle-axes" title="切换坐标轴" style="font-size:9px">✛</button>
+        </div>
+        <div id="snap-bar" style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:4px;pointer-events:none;">
+          <span style="background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);padding:3px 12px;border-radius:20px;font-size:10px;color:var(--gray-400);border:0.5px solid rgba(0,0,0,0.06);" id="snap-indicator">吸附: 关</span>
+        </div>
+        <div id="ghost-crosshair"><div id="ghost-crosshair-dot"></div></div>
+        <div id="ghost-hud">🌊 浮灵模式 · <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 移动 · <span class="key">Space</span> 上升 · <span class="key">Shift</span> 下降 · <span class="key">G</span> 退出</div>
+        <div id="viewport-info" style="transition:opacity 0.3s;">左键旋转 · 滚轮缩放 · 右键平移 · <span style="color:var(--blue)">G</span> 浮灵</div>
+      </div>
+
+      <!-- ===== 右侧属性面板 ===== -->
+      <div id="panel">
+        <div class="panel-section">
+          <div class="panel-header">物体属性</div>
+          <div class="panel-body">
+            <div class="form-row">
+              <label>名称</label>
+              <input type="text" id="obj-name" value="未选择" disabled style="flex:1;background:var(--gray-50);border:0.5px solid var(--gray-200);color:var(--gray-800);padding:3px 6px;border-radius:var(--radius-sm);font-size:12px;">
+            </div>
+            <div class="form-row">
+              <label>类型</label>
+              <span id="obj-type" style="color:var(--gray-400);font-size:12px;">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-header">变换</div>
+          <div class="panel-body" id="transform-panel">
+            <div class="form-row"><label>位置</label><div class="xyz-group">
+              <span class="xyz-label x">X</span><input type="number" id="pos-x" step="0.1">
+              <span class="xyz-label y">Y</span><input type="number" id="pos-y" step="0.1">
+              <span class="xyz-label z">Z</span><input type="number" id="pos-z" step="0.1">
+            </div></div>
+            <div class="form-row"><label>旋转</label><div class="xyz-group">
+              <span class="xyz-label x">X</span><input type="number" id="rot-x" step="5">
+              <span class="xyz-label y">Y</span><input type="number" id="rot-y" step="5">
+              <span class="xyz-label z">Z</span><input type="number" id="rot-z" step="5">
+            </div></div>
+            <div class="form-row"><label>缩放</label><div class="xyz-group">
+              <span class="xyz-label x">X</span><input type="number" id="scl-x" step="0.1" min="0.01">
+              <span class="xyz-label y">Y</span><input type="number" id="scl-y" step="0.1" min="0.01">
+              <span class="xyz-label z">Z</span><input type="number" id="scl-z" step="0.1" min="0.01">
+            </div></div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-header">材质</div>
+          <div class="panel-body" id="material-panel">
+            <div class="form-row"><label>颜色</label><input type="color" id="mat-color" value="#0071e3"></div>
+            <div class="form-row"><label>金属度</label><input type="range" id="mat-metal" min="0" max="1" step="0.01" value="0.1"></div>
+            <div class="form-row"><label>粗糙度</label><input type="range" id="mat-rough" min="0" max="1" step="0.01" value="0.6"></div>
+            <div class="form-row"><label>线框</label><input type="checkbox" id="mat-wireframe" style="accent-color:var(--blue)"></div>
+            <div class="form-row"><label>着色</label>
+              <select id="mat-shading" style="flex:1;background:var(--gray-50);border:0.5px solid var(--gray-200);color:var(--gray-800);padding:3px 6px;border-radius:var(--radius-sm);font-size:12px;outline:none;">
+                <option value="smooth">平滑</option>
+                <option value="flat">平面</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-header">材质预设</div>
+          <div class="panel-body" id="material-presets-body">
+            <div id="material-presets-list" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+          </div>
+        </div>
+        <div class="panel-section" id="clay-panel" style="display:none;">
+          <div class="panel-header">黏土雕刻</div>
+          <div class="panel-body">
+            <div class="form-row"><label>笔刷</label>
+              <select id="clay-brush-type" style="flex:1;background:var(--gray-50);border:0.5px solid var(--gray-200);color:var(--gray-800);padding:3px 6px;border-radius:var(--radius-sm);font-size:12px;outline:none;">
+                <option value="push">推拉</option>
+                <option value="smooth">平滑</option>
+                <option value="inflate">膨胀</option>
+                <option value="flatten">压平</option>
+              </select>
+            </div>
+            <div class="form-row"><label>大小</label><input type="range" id="clay-size" min="0.1" max="2" step="0.05" value="0.6" style="flex:1;accent-color:var(--blue)"><span id="clay-size-val" style="width:30px;text-align:right;color:var(--gray-400);font-size:11px">0.6</span></div>
+            <div class="form-row"><label>力度</label><input type="range" id="clay-strength" min="0.01" max="1" step="0.01" value="0.25" style="flex:1;accent-color:var(--blue)"><span id="clay-strength-val" style="width:30px;text-align:right;color:var(--gray-400);font-size:11px">0.25</span></div>
+            <div class="form-row"><label>细分</label>
+              <button class="btn btn-sm" id="clay-subdivide" style="flex:1;">细分网格</button>
+            </div>
+            <div style="margin-top:4px;font-size:10px;color:var(--gray-400);text-align:center;">
+              拖拽雕刻 · Shift 凹陷 · Ctrl 平滑
+            </div>
+          </div>
+        </div>
+        <div class="panel-section" style="flex-shrink:0;">
+          <div class="panel-header">场景信息</div>
+          <div class="panel-body" style="font-size:11px;color:var(--gray-400);padding:6px 14px;">
+            <div id="scene-info">物体数: 0</div>
+            <div id="clay-info" style="display:none;margin-top:4px;color:var(--blue);">顶点数: <span id="clay-vert-count">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 面板拖拽分隔条 ===== -->
+      <div id="panel-resizer"></div>
+
+      <!-- ===== 底部大纲 ===== -->
+      <div id="bottom">
+        <div id="bottom-tabs">
+          <div class="bottom-tab active" data-tab="outliner">场景集合</div>
+        </div>
+        <div id="bottom-content">
+          <ul id="outliner-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 右键菜单 ===== -->
+    <div class="context-menu" id="context-menu">
+      <button class="context-menu-item" data-action="duplicate">
+        <span class="cm-icon">📋</span> 复制 <span class="cm-shortcut">Shift+D</span>
+      </button>
+      <button class="context-menu-item" data-action="rename">
+        <span class="cm-icon">✏️</span> 重命名
+      </button>
+      <button class="context-menu-item" data-action="save-to-library">
+        <span class="cm-icon">📦</span> 存为素材
+      </button>
+      <div class="context-menu-sep"></div>
+      <button class="context-menu-item" data-action="delete" style="color:#ff3b30;">
+        <span class="cm-icon">🗑</span> 删除 <span class="cm-shortcut">Del</span>
+      </button>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ===== 文件输入(隐藏) ===== -->
+    <input type="file" id="file-input" accept=".json,.glb,.gltf" style="display:none">
+
+    <!-- ===== 图形选择弹窗 ===== -->
+    <div class="modal-overlay" id="shape-modal">
+      <div class="modal" style="position:relative">
+        <div class="modal-title">选择要添加的图形</div>
+        <div class="modal-grid" id="shape-grid"></div>
+      </div>
+    </div>
+
+    <!-- ===== 快捷键帮助弹窗 ===== -->
+    <div class="modal-overlay" id="shortcuts-modal">
+      <div class="modal" style="position:relative;width:420px;">
+        <div class="modal-title">⌨ 快捷键</div>
+        <div id="shortcuts-list" style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         捏土工作室 — 实心黏土雕刻工坊
+         ============================================================ -->
+    <div id="clay-studio" style="display:none;">
+      <!-- 工坊背景氛围 -->
+      <div id="cs-ambient"></div>
+
+      <!-- 顶栏 — 极简 -->
+      <div id="cs-topbar">
+        <button class="cs-back-btn" id="btn-cs-back" title="返回建模器">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/></svg>
+        </button>
+        <span class="cs-title">捏土工坊</span>
+        <span class="cs-vert-info" id="cs-vert-count">12,288 顶点</span>
+        <div style="flex:1"></div>
+        <button class="cs-action-btn" id="btn-cs-undo" title="撤销 Ctrl+Z">↩</button>
+        <button class="cs-action-btn" id="btn-cs-redo" title="重做 Ctrl+Y">↪</button>
+        <button class="cs-action-btn" id="btn-cs-reset" title="换块新泥">🔄 新泥</button>
+        <button class="cs-action-btn cs-primary-btn" id="btn-cs-save-lib" title="存入素材库">📦 存为素材</button>
+        <button class="cs-action-btn" id="btn-cs-export" title="导出GLB模型">⬇ 导出</button>
+      </div>
+
+      <!-- 3D视口 — 占满全屏 -->
+      <div id="cs-viewport">
+        <div id="cs-hud">
+          <span class="cs-hud-brush" id="cs-hud-brush">✋ 推拉</span>
+          <span class="cs-hud-hint">拖拽雕刻 · 滚轮缩放 · 右键旋转</span>
+        </div>
+      </div>
+
+      <!-- 左侧浮动工具面板 -->
+      <div id="cs-tool-palette">
+        <div class="cs-palette-group">
+          <div class="cs-palette-label">笔刷</div>
+          <button class="cs-brush-btn active" data-cs-brush="push" title="推拉 (1)">
+            <svg viewBox="0 0 24 24"><path d="M18 2l-2 6h4l-3 8h-2l-2-12h2l1-2z"/></svg>
+            <span>推拉</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="smooth" title="平滑 (2)">
+            <svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>平滑</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="inflate" title="膨胀 (3)">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>膨胀</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="flatten" title="压平 (4)">
+            <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="2" rx="1"/><rect x="4" y="15" width="16" height="2" rx="1"/></svg>
+            <span>压平</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="pinch" title="捏夹 (5)">
+            <svg viewBox="0 0 24 24"><path d="M8 8l-2 2 4 4-4 4 2 2 6-6zM16 8l2 2-4 4 4 4-2 2-6-6z"/></svg>
+            <span>捏夹</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="grab" title="拖拽 (6)">
+            <svg viewBox="0 0 24 24"><path d="M8 6l-4 6 4 6M16 6l4 6-4 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <span>拖拽</span>
+          </button>
+          <button class="cs-brush-btn" data-cs-brush="carve" title="刻痕 (7)">
+            <svg viewBox="0 0 24 24"><path d="M3 17l1 3 3 1M21 7l-1-3-3-1M7 21l14-14L17 3 3 17l4 4z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>刻痕</span>
+          </button>
+        </div>
+        <div class="cs-palette-sep"></div>
+        <div class="cs-palette-group">
+          <div class="cs-palette-label">设置</div>
+          <div class="cs-slider-row">
+            <span>大小</span>
+            <input type="range" id="cs-brush-size" min="0.1" max="3" step="0.05" value="0.7">
+            <span class="cs-val" id="cs-brush-size-val">0.7</span>
+          </div>
+          <div class="cs-slider-row">
+            <span>力度</span>
+            <input type="range" id="cs-brush-strength" min="0.01" max="1" step="0.01" value="0.25">
+            <span class="cs-val" id="cs-brush-strength-val">0.25</span>
+          </div>
+          <div class="cs-slider-row">
+            <span>衰减</span>
+            <input type="range" id="cs-brush-falloff" min="0.1" max="2" step="0.05" value="1">
+            <span class="cs-val" id="cs-brush-falloff-val">1.0</span>
+          </div>
+        </div>
+        <div class="cs-palette-sep"></div>
+        <div class="cs-palette-group">
+          <button class="cs-palette-btn" id="btn-cs-subdivide" title="细分网格 (D)">🔍 细分</button>
+          <button class="cs-palette-btn" id="btn-cs-symmetry" title="对称模式 (S)">⟷ 对称</button>
+          <button class="cs-palette-btn" id="btn-cs-wireframe" title="查看网格">▦ 网格</button>
+          <button class="cs-palette-btn" id="btn-cs-frame" title="聚焦黏土">⊡ 聚焦</button>
+        </div>
+        <div class="cs-palette-sep"></div>
+        <div class="cs-palette-group">
+          <div class="cs-palette-label">黏土颜色</div>
+          <div class="cs-color-presets" id="cs-color-presets">
+            <button class="cs-color-dot active" data-cs-color="#c97d5e" style="background:#c97d5e" title="陶土"></button>
+            <button class="cs-color-dot" data-cs-color="#9e9e9e" style="background:#9e9e9e" title="灰泥"></button>
+            <button class="cs-color-dot" data-cs-color="#8d6e63" style="background:#8d6e63" title="棕泥"></button>
+            <button class="cs-color-dot" data-cs-color="#e8c4a8" style="background:#e8c4a8" title="白陶"></button>
+            <button class="cs-color-dot" data-cs-color="#5d4037" style="background:#5d4037" title="黑陶"></button>
+            <button class="cs-color-dot" data-cs-color="#f5f5dc" style="background:#f5f5dc" title="瓷白"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 黏土胚体选择（底部浮动） -->
+      <div id="cs-clay-types-bar">
+        <button class="cs-clay-type-chip active" data-cs-clay="block" title="实心方块 — 最接近真实黏土块">
+          🧱 实心方砖
+        </button>
+        <button class="cs-clay-type-chip" data-cs-clay="sphere" title="泥球">
+          🏐 泥球
+        </button>
+        <button class="cs-clay-type-chip" data-cs-clay="cylinder" title="泥柱">
+          🥫 泥柱
+        </button>
+        <button class="cs-clay-type-chip" data-cs-clay="lump" title="不规则泥块">
+          🪨 原泥
+        </button>
+      </div>
+
+      <!-- 对称指示器 -->
+      <div id="cs-symmetry-indicator">⟷ 对称雕刻中</div>
+
+      <!-- 底栏信息 -->
+      <div id="cs-stats-bar">
+        <span>顶点 <b id="cs-stat-verts">12,288</b></span>
+        <span>面 <b id="cs-stat-faces">4,096</b></span>
+        <span>笔刷 <b id="cs-stat-brush">推拉</b></span>
+      </div>
+    </div>
+
+    <!-- ===== 素材库弹窗 ===== -->
+    <div class="modal-overlay" id="library-modal">
+      <div class="modal" style="width:520px;">
+        <div class="modal-title">📦 素材库 · 从捏土工作室导入</div>
+        <div class="lib-grid" id="lib-grid"></div>
+        <div class="lib-actions">
+          <span style="font-size:11px;color:var(--gray-400);margin-right:auto;align-self:center;">点击模型添加到场景</span>
+          <button class="btn" onclick="document.getElementById('library-modal').classList.remove('open')">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AI 建模弹窗 ===== -->
+    <div class="modal-overlay" id="ai-modal">
+      <div class="modal" style="width:560px;max-height:85vh;">
+        <div class="modal-title">🤖 AI 智能建模</div>
+        <div style="margin-bottom:10px;">
+          <textarea id="ai-prompt" placeholder="描述你想要创建的3D模型...&#10;例如：一个红色皮沙发，带圆角扶手和四个短腿&#10;例如：一个卡通风格的太空火箭，金属银色" style="width:100%;height:90px;background:var(--gray-50);border:0.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;color:var(--gray-800);"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <button class="btn" id="btn-ai-generate" style="flex:1;background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;padding:8px;">✨ 生成模型</button>
+          <button class="btn" id="btn-ai-project" style="flex-shrink:0;background:#34c759;color:#fff;border-color:#34c759;font-weight:600;" title="将缓存代码投射到场景">📥 投射</button>
+          <button class="btn" id="btn-ai-settings-toggle" style="flex-shrink:0;" title="API设置">⚙</button>
+          <span id="ai-status" style="font-size:11px;color:var(--gray-400);"></span>
+        </div>
+        <!-- API 设置面板 (默认折叠) -->
+        <div id="ai-settings" style="display:none;border-top:0.5px solid var(--gray-100);padding-top:10px;margin-bottom:10px;">
+          <div class="form-row" style="margin-bottom:6px;"><label>端点</label><input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1/chat/completions" style="flex:1;font-size:11px;"></div>
+          <div class="form-row" style="margin-bottom:6px;"><label>模型</label><input type="text" id="ai-model-name" placeholder="gpt-4o" style="flex:1;font-size:11px;"></div>
+          <div class="form-row" style="margin-bottom:6px;"><label>密钥</label><input type="password" id="ai-api-key" placeholder="sk-..." style="flex:1;font-size:11px;"></div>
+          <div style="font-size:10px;color:var(--gray-400);margin-top:4px;">支持 OpenAI / Ollama / 任何兼容端点。密钥仅存本地。</div>
+        </div>
+        <!-- 生成结果显示 -->
+        <div id="ai-result" style="display:none;border-top:0.5px solid var(--gray-100);padding-top:10px;max-height:200px;overflow-y:auto;">
+          <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px;">生成结果：</div>
+          <pre id="ai-code" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:10px;font-size:10px;color:var(--gray-700);white-space:pre-wrap;word-break:break-all;max-height:150px;overflow-y:auto;margin:0;"></pre>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>捏土 · 黏土雕刻工坊</title>
+<style>
+/* ===== Apple Design — 暖陶风格 ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --white: #ffffff;
+  --gray-50: #f5f5f7;
+  --gray-100: #e8e8ed;
+  --gray-200: #d2d2d7;
+  --gray-300: #aeaeb2;
+  --gray-400: #8e8e93;
+  --gray-500: #636366;
+  --gray-600: #48484a;
+  --gray-700: #363639;
+  --gray-800: #1c1c1e;
+  --clay: #d4956a;
+  --clay-light: #e8c4a8;
+  --clay-dark: #b8734a;
+  --terracotta: #c97d5e;
+  --warm-bg: #fdf6f0;
+  --blue: #0071e3;
+  --blue-light: #409cff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --header-h: 44px;
+  --toolbar-w: 48px;
+  --panel-w: 300px;
+  font-size: 13px;
+}
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--warm-bg);
+  color: var(--gray-800);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  width: 100vw; height: 100vh;
+  grid-template-rows: var(--header-h) 1fr;
+  grid-template-columns: var(--toolbar-w) 1fr var(--panel-w);
+  grid-template-areas:
+    "header header header"
+    "toolbar viewport panel";
+}
+
+/* ===== Header ===== */
+#header {
+  grid-area: header;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  z-index: 20;
+  user-select: none;
+}
+#header .logo {
+  font-weight: 600;
+  color: var(--terracotta);
+  margin-right: 14px;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+.header-btn {
+  background: transparent;
+  border: none;
+  color: var(--gray-500);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header-btn:hover { background: rgba(201,125,94,0.08); color: var(--terracotta); }
+.header-btn:active { transform: scale(0.97); }
+.header-btn.primary {
+  background: var(--terracotta);
+  color: #fff;
+  font-weight: 500;
+}
+.header-btn.primary:hover { background: var(--clay-dark); }
+.header-sep { width: 1px; height: 18px; background: var(--gray-200); margin: 0 6px; }
+.header-title {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--gray-400);
+  letter-spacing: 0.5px;
+}
+
+/* ===== Toolbar ===== */
+#toolbar {
+  grid-area: toolbar;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border-right: 0.5px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 1px;
+  z-index: 5;
+}
+.tool-btn {
+  width: 40px; height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  gap: 0;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.tool-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.tool-btn:hover { background: rgba(201,125,94,0.08); color: var(--terracotta); }
+.tool-btn.active { background: var(--terracotta); color: #fff; box-shadow: 0 2px 8px rgba(201,125,94,0.3); }
+.tool-btn .label { font-size: 7px; line-height: 1; margin-top: 1px; opacity: 0.7; }
+.tool-btn.active .label { opacity: 1; }
+.tool-sep { width: 26px; height: 1px; background: var(--gray-200); margin: 3px 0; }
+
+/* ===== Viewport ===== */
+#viewport {
+  grid-area: viewport;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #fdf6f0 0%, #f0e8dc 100%);
+}
+#viewport canvas { display: block; width: 100% !important; height: 100% !important; }
+#viewport-info {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(0,0,0,0.25);
+  font-size: 11px;
+  pointer-events: none;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+  padding: 4px 14px;
+  border-radius: var(--radius-xl);
+}
+
+/* Brush cursor HUD */
+#brush-hud {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(201,125,94,0.12);
+  backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(201,125,94,0.25);
+  padding: 6px 20px;
+  border-radius: var(--radius-xl);
+  font-size: 11px;
+  color: var(--terracotta);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-weight: 500;
+}
+#brush-hud.show { opacity: 1; }
+#brush-hud .key { display: inline-block; background: rgba(201,125,94,0.15); padding: 0 6px; border-radius: 3px; font-size: 9px; margin: 0 2px; }
+
+/* Viewport overlay controls */
+#viewport-overlay {
+  position: absolute;
+  top: 10px; left: 10px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.vp-btn {
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(0,0,0,0.08);
+  color: var(--gray-500);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.vp-btn:hover { background: rgba(255,255,255,0.95); color: var(--terracotta); }
+
+/* Symmetry indicator */
+#symmetry-indicator {
+  position: absolute;
+  top: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  padding: 4px 14px;
+  border-radius: var(--radius-xl);
+  font-size: 10px;
+  color: var(--terracotta);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border: 0.5px solid rgba(201,125,94,0.2);
+}
+#symmetry-indicator.show { opacity: 1; }
+
+/* ===== Panel ===== */
+#panel {
+  grid-area: panel;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-left: 0.5px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 5;
+}
+.panel-section { border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+.panel-header {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.panel-body { padding: 8px 14px 10px; display: flex; flex-direction: column; gap: 7px; }
+
+.form-row { display: flex; align-items: center; gap: 8px; }
+.form-row label { flex: 0 0 40px; font-size: 11px; color: var(--gray-400); font-weight: 500; }
+.form-row select {
+  flex: 1;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  color: var(--gray-800);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s;
+  min-width: 0;
+}
+.form-row select:focus { border-color: var(--terracotta); box-shadow: 0 0 0 2px rgba(201,125,94,0.15); }
+.form-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--terracotta);
+  height: 4px;
+}
+.form-row input[type="range"]::-webkit-slider-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 0.5px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.form-row input[type="color"] {
+  width: 32px; height: 32px;
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 2px;
+  background: none;
+}
+
+.btn {
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  color: var(--gray-700);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--gray-100); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--terracotta); color: #fff; border-color: var(--terracotta); }
+.btn-primary:hover { background: var(--clay-dark); }
+.btn-sm { padding: 4px 10px; font-size: 11px; border-radius: var(--radius-sm); }
+.btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* Clay type selector */
+.clay-types { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+.clay-type-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  padding: 10px 4px 8px;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  color: var(--gray-600);
+  font-size: 10px;
+}
+.clay-type-btn:hover { background: rgba(201,125,94,0.06); border-color: var(--terracotta); }
+.clay-type-btn.active { background: rgba(201,125,94,0.12); border-color: var(--terracotta); color: var(--terracotta); }
+.clay-type-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* Stats */
+.stat-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-400); }
+.stat-row span:last-child { color: var(--gray-600); font-weight: 500; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(50,50,50,0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: white;
+  padding: 10px 24px;
+  border-radius: var(--radius-xl);
+  font-size: 13px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: var(--shadow-lg);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  padding: 24px 28px 20px;
+  width: 400px;
+  max-width: 90vw;
+  animation: modalSlideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal input[type="text"] {
+  width: 100%;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  color: var(--gray-800);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+.modal input[type="text"]:focus { border-color: var(--terracotta); box-shadow: 0 0 0 2px rgba(201,125,94,0.15); }
+
+/* Material library modal */
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.lib-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px 8px;
+  background: var(--gray-50);
+  border: 0.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lib-item:hover { background: rgba(201,125,94,0.06); border-color: var(--terracotta); }
+.lib-item .lib-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px;
+}
+.lib-item .lib-name { font-size: 10px; color: var(--gray-600); text-align: center; }
+.lib-item .lib-del {
+  font-size: 8px; color: var(--gray-400);
+  cursor: pointer; padding: 2px 6px;
+  border-radius: 3px;
+}
+.lib-item .lib-del:hover { color: #ff3b30; background: rgba(255,59,48,0.1); }
+.lib-empty { color: var(--gray-300); font-size: 12px; text-align: center; padding: 30px; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-300); }
+
+@media (max-width: 800px) {
+  #app { grid-template-columns: var(--toolbar-w) 1fr 0; }
+  #panel { display: none; }
+}
+@media (max-width: 500px) {
+  #app { grid-template-columns: 0 1fr 0; }
+  #toolbar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===== Header ===== -->
+  <div id="header">
+    <span class="logo">🫱 捏土工坊</span>
+    <div class="header-sep"></div>
+    <button class="header-btn" onclick="window.location.href='modeler.html'">← 返回建模器</button>
+    <div class="header-sep"></div>
+    <button class="header-btn" data-action="undo" title="撤销 Ctrl+Z">↩ 撤销</button>
+    <button class="header-btn" data-action="redo" title="重做 Ctrl+Shift+Z">↪ 重做</button>
+    <div class="header-sep"></div>
+    <button class="header-btn" data-action="reset-clay">🔄 重置黏土</button>
+    <span class="header-title" id="vert-count-display">顶点: 0</span>
+    <div class="header-sep"></div>
+    <button class="header-btn" data-action="export-glb">⬇ 导出模型</button>
+    <button class="header-btn primary" data-action="save-library">📦 存入素材库</button>
+  </div>
+
+  <!-- ===== Toolbar ===== -->
+  <div id="toolbar">
+    <button class="tool-btn active" data-brush="push" title="推拉笔刷 (1)">
+      <svg viewBox="0 0 24 24"><path d="M18 2l-2 6h4l-3 8h-2l-2-12h2l1-2z" fill="currentColor"/></svg>
+      <span class="label">推拉</span>
+    </button>
+    <button class="tool-btn" data-brush="smooth" title="平滑笔刷 (2)">
+      <svg viewBox="0 0 24 24"><path d="M17.66 3.34a8 8 0 1 0 0 11.32A8 8 0 0 0 17.66 3.34zM12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      <span class="label">平滑</span>
+    </button>
+    <button class="tool-btn" data-brush="inflate" title="膨胀笔刷 (3)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="10" r="2" fill="currentColor"/><circle cx="15" cy="10" r="2" fill="currentColor"/><path d="M8 15c0 0 1.5 3 4 3s4-3 4-3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="label">膨胀</span>
+    </button>
+    <button class="tool-btn" data-brush="flatten" title="压平笔刷 (4)">
+      <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="2" rx="1" fill="currentColor"/><rect x="4" y="12" width="16" height="2" rx="1" fill="currentColor"/><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor"/></svg>
+      <span class="label">压平</span>
+    </button>
+    <button class="tool-btn" data-brush="pinch" title="捏夹笔刷 (5)">
+      <svg viewBox="0 0 24 24"><path d="M11 6H9V4h2v2zm4 0h2V4h-2v2zM9 18h2v2H9v-2zm4 0h2v2h-2v-2zm-3-4h2v-4h-2v4zm-4 0h2v-4H6v4zm8 0h2v-4h-2v4z" fill="currentColor"/></svg>
+      <span class="label">捏夹</span>
+    </button>
+    <button class="tool-btn" data-brush="grab" title="拖拽笔刷 (6)">
+      <svg viewBox="0 0 24 24"><path d="M4 12l8-8 8 8h-5v8h-6v-8H4z" fill="currentColor"/></svg>
+      <span class="label">拖拽</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" data-brush="carve" title="刻痕笔刷 (7)">
+      <svg viewBox="0 0 24 24"><path d="M15 3l2 2-10 10-2-2L15 3zm-1 1L6 12l1 1 8-8-1-1z" fill="currentColor"/><line x1="4" y1="20" x2="8" y2="16" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="label">刻痕</span>
+    </button>
+    <button class="tool-btn" data-action="subdivide" title="细分网格">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" stroke-width="0.8"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="0.8"/></svg>
+      <span class="label">细分</span>
+    </button>
+    <div class="tool-sep"></div>
+    <button class="tool-btn" data-action="toggle-symmetry" id="btn-symmetry" title="对称模式">
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M5 5l14 14M19 5L5 19" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="label">对称</span>
+    </button>
+  </div>
+
+  <!-- ===== Viewport ===== -->
+  <div id="viewport">
+    <div id="symmetry-indicator">⟷ 对称模式</div>
+    <div id="viewport-overlay">
+      <button class="vp-btn" data-view="front" title="前视图">前</button>
+      <button class="vp-btn" data-view="top" title="顶视图">顶</button>
+      <button class="vp-btn" data-view="right" title="右视图">右</button>
+      <button class="vp-btn" data-action="frame" title="聚焦">⊡</button>
+      <button class="vp-btn" data-action="reset-view" title="重置视角">⌂</button>
+      <div style="height:2px"></div>
+      <button class="vp-btn" data-action="toggle-grid" style="font-size:9px">▦</button>
+      <button class="vp-btn" data-action="toggle-wireframe" style="font-size:9px" id="btn-wireframe">◇</button>
+    </div>
+    <div id="brush-hud">
+      ✋ 雕刻中 · <span class="key">Shift</span> 反向 · <span class="key">Ctrl</span> 平滑 · <span class="key">1-7</span> 切换笔刷
+    </div>
+    <div id="viewport-info">左键旋转 · 滚轮缩放 · 右键平移 · 拖拽左键雕刻</div>
+  </div>
+
+  <!-- ===== Panel ===== -->
+  <div id="panel">
+    <div class="panel-section">
+      <div class="panel-header">黏土胚体</div>
+      <div class="panel-body">
+        <div class="clay-types" id="clay-types">
+          <button class="clay-type-btn active" data-clay="sphere">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.3"/></svg>
+            球体
+          </button>
+          <button class="clay-type-btn" data-clay="block">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor" opacity="0.3"/></svg>
+            方块
+          </button>
+          <button class="clay-type-btn" data-clay="cylinder">
+            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="7" fill="currentColor" opacity="0.3"/></svg>
+            圆柱
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-header">笔刷设置</div>
+      <div class="panel-body">
+        <div class="form-row">
+          <label>大小</label>
+          <input type="range" id="brush-size" min="0.1" max="3" step="0.05" value="0.8">
+          <span id="brush-size-val" style="width:32px;text-align:right;font-size:11px;color:var(--gray-400)">0.8</span>
+        </div>
+        <div class="form-row">
+          <label>力度</label>
+          <input type="range" id="brush-strength" min="0.01" max="1" step="0.01" value="0.3">
+          <span id="brush-strength-val" style="width:32px;text-align:right;font-size:11px;color:var(--gray-400)">0.30</span>
+        </div>
+        <div class="form-row">
+          <label>衰减</label>
+          <input type="range" id="brush-falloff" min="0.1" max="2" step="0.05" value="1">
+          <span id="brush-falloff-val" style="width:32px;text-align:right;font-size:11px;color:var(--gray-400)">1.0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-header">材质外观</div>
+      <div class="panel-body">
+        <div class="form-row">
+          <label>颜色</label>
+          <input type="color" id="clay-color" value="#d4956a">
+        </div>
+        <div class="form-row">
+          <label>粗糙度</label>
+          <input type="range" id="clay-roughness" min="0" max="1" step="0.01" value="0.7">
+        </div>
+        <div class="form-row">
+          <label>金属</label>
+          <input type="range" id="clay-metalness" min="0" max="1" step="0.01" value="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-header">模型信息</div>
+      <div class="panel-body">
+        <div class="stat-row"><span>顶点数</span><span id="stat-verts">0</span></div>
+        <div class="stat-row"><span>三角面数</span><span id="stat-faces">0</span></div>
+        <div class="stat-row"><span>笔刷</span><span id="stat-brush">推拉</span></div>
+        <div class="stat-row"><span>对称</span><span id="stat-symmetry">关</span></div>
+      </div>
+    </div>
+
+    <div class="panel-section" style="flex:1;">
+      <div class="panel-header">操作提示</div>
+      <div class="panel-body" style="font-size:11px;color:var(--gray-400);line-height:1.6;">
+        <div>🖱 拖拽左键 — 雕刻</div>
+        <div>⇧ Shift + 拖拽 — 反向雕刻</div>
+        <div>⌃ Ctrl + 拖拽 — 临时平滑</div>
+        <div>🔄 滚轮 — 缩放</div>
+        <div>🖱 右键拖拽 — 平移视角</div>
+        <div>1-7 — 快速切换笔刷</div>
+        <div>S — 切换对称模式</div>
+        <div>D — 细分网格</div>
+        <div>Ctrl+Z — 撤销</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Save to library modal -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <div class="modal-title">📦 存入素材库</div>
+    <input type="text" id="save-name" placeholder="输入模型名称..." value="我的捏土作品">
+    <div class="btn-group" style="justify-content:flex-end;">
+      <button class="btn" onclick="closeSaveModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveToLibrary()">确认存入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Material library modal -->
+<div class="modal-overlay" id="library-modal">
+  <div class="modal" style="width:480px;">
+    <div class="modal-title">📚 素材库</div>
+    <div class="lib-grid" id="lib-grid"></div>
+    <div style="margin-top:12px;text-align:right;">
+      <button class="btn" onclick="closeLibraryModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js Import Map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+//  Core State
+// ============================================================
+const state = {
+  brushType: 'push',
+  brushSize: 0.8,
+  brushStrength: 0.3,
+  brushFalloff: 1.0,
+  symmetry: false,
+  wireframe: false,
+  isSculpting: false,
+  clayType: 'sphere',
+  undoStack: [],
+  redoStack: [],
+};
+
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+
+// Warm gradient background
+const bgCanvas = document.createElement('canvas');
+bgCanvas.width = 2; bgCanvas.height = 256;
+const bgCtx = bgCanvas.getContext('2d');
+const bgGrad = bgCtx.createLinearGradient(0, 0, 0, 256);
+bgGrad.addColorStop(0, '#fdf6f0');
+bgGrad.addColorStop(0.5, '#f8f0e8');
+bgGrad.addColorStop(1, '#f0e4d4');
+bgCtx.fillStyle = bgGrad;
+bgCtx.fillRect(0, 0, 2, 256);
+scene.background = new THREE.CanvasTexture(bgCanvas);
+
+const camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
+camera.position.set(4, 3, 6);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.insertBefore(renderer.domElement, viewport.firstChild);
+
+// ===== Lighting =====
+scene.add(new THREE.AmbientLight(0xfff5ee, 0.6));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+keyLight.position.set(8, 10, 6);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0xfff0e6, 0.5);
+fillLight.position.set(-4, 2, -4);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+rimLight.position.set(-2, -1, 8);
+scene.add(rimLight);
+
+// ===== Grid =====
+const gridHelper = new THREE.Group();
+const grid = new THREE.GridHelper(12, 20, 0xd4956a, 0xd8c8b8);
+grid.material.transparent = true; grid.material.opacity = 0.25;
+gridHelper.add(grid);
+scene.add(gridHelper);
+
+// ===== Ground shadow =====
+const groundGeo = new THREE.PlaneGeometry(12, 12);
+const groundMat = new THREE.ShadowMaterial({ opacity: 0.25 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1.5;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ===== Orbit Controls =====
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.08;
+orbitControls.minDistance = 1;
+orbitControls.maxDistance = 15;
+orbitControls.target.set(0, 0, 0);
+
+// ============================================================
+//  Clay Object
+// ============================================================
+let clayMesh = null;
+let clayMaterial = null;
+
+// Vertex cache for sculpting
+const vertCache = {
+  original: [],     // THREE.Vector3[]
+  worldPos: [],     // THREE.Vector3[] — current world-space positions
+  normals: [],      // THREE.Vector3[]
+  dirty: false,
+};
+
+function createClayGeometry(type) {
+  switch (type) {
+    case 'sphere':
+      return new THREE.SphereGeometry(1.2, 64, 48);
+    case 'block':
+      return new THREE.BoxGeometry(1.8, 1.8, 1.8, 20, 20, 20);
+    case 'cylinder':
+      return new THREE.CylinderGeometry(1, 1, 2.2, 48, 20);
+    default:
+      return new THREE.SphereGeometry(1.2, 64, 48);
+  }
+}
+
+function initClayMesh(type = 'sphere') {
+  if (clayMesh) {
+    scene.remove(clayMesh);
+    clayMesh.geometry.dispose();
+    if (clayMaterial) clayMaterial.dispose();
+  }
+
+  const geo = createClayGeometry(type);
+  clayMaterial = new THREE.MeshStandardMaterial({
+    color: document.getElementById('clay-color').value,
+    roughness: parseFloat(document.getElementById('clay-roughness').value),
+    metalness: parseFloat(document.getElementById('clay-metalness').value),
+    flatShading: false,
+    envMapIntensity: 0.3,
+  });
+  clayMesh = new THREE.Mesh(geo, clayMaterial);
+  clayMesh.castShadow = true;
+  clayMesh.receiveShadow = true;
+  clayMesh.position.set(0, 0, 0);
+  scene.add(clayMesh);
+
+  state.clayType = type;
+  state.undoStack = [];
+  state.redoStack = [];
+  rebuildVertCache();
+  updateStats();
+}
+
+function rebuildVertCache() {
+  if (!clayMesh) return;
+  const geo = clayMesh.geometry;
+
+  // Ensure non-indexed
+  if (geo.index) {
+    const ni = geo.toNonIndexed();
+    clayMesh.geometry = ni;
+    geo.dispose();
+  }
+
+  const pos = clayMesh.geometry.attributes.position;
+  vertCache.original = [];
+  vertCache.worldPos = [];
+  vertCache.normals = [];
+
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    const i3 = i * 3;
+    v.set(pos.array[i3], pos.array[i3 + 1], pos.array[i3 + 2]);
+    vertCache.original.push(v.clone());
+    vertCache.worldPos.push(v.clone());
+    vertCache.normals.push(new THREE.Vector3());
+  }
+  computeVertNormals();
+}
+
+function computeVertNormals() {
+  const pos = clayMesh.geometry.attributes.position;
+  const count = pos.count;
+  const faceCount = count / 3;
+
+  // Reset
+  for (let i = 0; i < count; i++) vertCache.normals[i].set(0, 0, 0);
+
+  const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
+  const e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  const arr = pos.array;
+
+  for (let f = 0; f < faceCount; f++) {
+    const i0 = f * 3, i1 = f * 3 + 1, i2 = f * 3 + 2;
+    v1.set(arr[i0 * 3], arr[i0 * 3 + 1], arr[i0 * 3 + 2]);
+    v2.set(arr[i1 * 3], arr[i1 * 3 + 1], arr[i1 * 3 + 2]);
+    v3.set(arr[i2 * 3], arr[i2 * 3 + 1], arr[i2 * 3 + 2]);
+    e1.subVectors(v2, v1);
+    e2.subVectors(v3, v1);
+    const fn = new THREE.Vector3().crossVectors(e1, e2).normalize();
+    vertCache.normals[i0].add(fn);
+    vertCache.normals[i1].add(fn);
+    vertCache.normals[i2].add(fn);
+  }
+  for (let i = 0; i < count; i++) vertCache.normals[i].normalize();
+}
+
+// ============================================================
+//  Sculpting System
+// ============================================================
+const sculpt = {
+  raycaster: new THREE.Raycaster(),
+  pointer: new THREE.Vector2(),
+  hitPoint: new THREE.Vector3(),
+  hitNormal: new THREE.Vector3(),
+  lastPointer: new THREE.Vector2(),
+  cursorRing: null,
+};
+
+function initSculptCursor() {
+  const ringGeo = new THREE.RingGeometry(0.45, 0.55, 48);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+  });
+  sculpt.cursorRing = new THREE.Mesh(ringGeo, ringMat);
+  sculpt.cursorRing.visible = false;
+  sculpt.cursorRing.renderOrder = 999;
+  scene.add(sculpt.cursorRing);
+}
+
+function getSculptHit(event) {
+  if (!clayMesh) return false;
+  const rect = renderer.domElement.getBoundingClientRect();
+  sculpt.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  sculpt.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  sculpt.raycaster.setFromCamera(sculpt.pointer, camera);
+  const hits = sculpt.raycaster.intersectObject(clayMesh, false);
+  if (hits.length > 0) {
+    sculpt.hitPoint.copy(hits[0].point);
+    sculpt.hitNormal.copy(hits[0].face.normal).transformDirection(clayMesh.matrixWorld);
+    return true;
+  }
+  return false;
+}
+
+function applyBrush(event) {
+  if (!clayMesh || !state.isSculpting) return;
+
+  const shift = event.shiftKey;
+  const ctrl = event.ctrlKey || event.metaKey;
+  const brushType = ctrl ? 'smooth' : state.brushType;
+
+  const geo = clayMesh.geometry;
+  const pos = geo.attributes.position;
+  const radius = state.brushSize;
+  const strength = state.brushStrength * 0.06;
+  const falloff = state.brushFalloff;
+
+  // Convert hit to local space
+  const localHit = sculpt.hitPoint.clone();
+  clayMesh.worldToLocal(localHit);
+
+  // Find affected vertices
+  const sqRadius = radius * radius;
+  const affected = [];
+
+  for (let i = 0; i < vertCache.original.length; i++) {
+    const vc = vertCache.original[i];
+    const dx = vc.x - localHit.x;
+    const dy = vc.y - localHit.y;
+    const dz = vc.z - localHit.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    if (distSq < sqRadius) {
+      const dist = Math.sqrt(distSq);
+      let influence = 1 - (dist / radius);
+      influence = Math.pow(Math.max(0, influence), falloff);
+      affected.push({ index: i, dist, influence });
+    }
+  }
+
+  if (affected.length === 0) return;
+
+  // Process symmetry
+  const allAffected = [...affected];
+  if (state.symmetry) {
+    // Mirror X axis
+    const mirrorHit = localHit.clone();
+    mirrorHit.x = -mirrorHit.x;
+    for (let i = 0; i < vertCache.original.length; i++) {
+      const vc = vertCache.original[i];
+      const dx = vc.x - mirrorHit.x;
+      const dy = vc.y - mirrorHit.y;
+      const dz = vc.z - mirrorHit.z;
+      const distSq = dx * dx + dy * dy + dz * dz;
+      if (distSq < sqRadius) {
+        const dist = Math.sqrt(distSq);
+        let influence = 1 - (dist / radius);
+        influence = Math.pow(Math.max(0, influence), falloff);
+        // Avoid double-processing
+        const already = allAffected.find(a => a.index === i);
+        if (!already) allAffected.push({ index: i, dist, influence, mirror: true });
+      }
+    }
+  }
+
+  switch (brushType) {
+    case 'push': {
+      // Push along normal based on mouse drag
+      const dragY = event.clientY - sculpt.lastPointer.y;
+      const dragX = event.clientX - sculpt.lastPointer.x;
+      const dragMag = Math.sqrt(dragX * dragX + dragY * dragY);
+      const sign = shift ? -1 : (dragMag > 0.5 ? Math.sign(dragY) : 1);
+
+      allAffected.forEach(({ index, influence, mirror }) => {
+        const vc = vertCache.original[index];
+        const n = vertCache.normals[index];
+        const offset = strength * influence * sign;
+        vc.x += n.x * offset;
+        vc.y += n.y * offset;
+        vc.z += n.z * offset;
+        if (mirror) vc.x = mirrorVertX(vc.x, n.x, offset);
+      });
+      break;
+    }
+    case 'smooth': {
+      const smoothFactor = strength * 3;
+      const smoothed = new Map();
+
+      allAffected.forEach(({ index, influence }) => {
+        let sx = 0, sy = 0, sz = 0, cnt = 0;
+        const vc = vertCache.original[index];
+        allAffected.forEach(({ index: j }) => {
+          if (j === index) return;
+          const vj = vertCache.original[j];
+          const d = vc.distanceTo(vj);
+          if (d < radius * 0.5) { sx += vj.x; sy += vj.y; sz += vj.z; cnt++; }
+        });
+        if (cnt > 0) {
+          smoothed.set(index, {
+            x: sx / cnt, y: sy / cnt, z: sz / cnt,
+            influence,
+          });
+        }
+      });
+
+      smoothed.forEach(({ x, y, z, influence }, index) => {
+        const vc = vertCache.original[index];
+        const f = smoothFactor * influence;
+        vc.x += (x - vc.x) * f;
+        vc.y += (y - vc.y) * f;
+        vc.z += (z - vc.z) * f;
+      });
+
+      if (state.symmetry) {
+        // Mirror smooth results for X-symmetric vertices
+        for (let i = 0; i < vertCache.original.length; i++) {
+          const vc = vertCache.original[i];
+          if (Math.abs(vc.x) < radius) {
+            // Near symmetry plane — blend
+          }
+        }
+      }
+      break;
+    }
+    case 'inflate': {
+      allAffected.forEach(({ index, influence, mirror }) => {
+        const vc = vertCache.original[index];
+        const n = vertCache.normals[index];
+        const offset = strength * influence * (shift ? -1 : 1);
+        vc.x += n.x * offset;
+        vc.y += n.y * offset;
+        vc.z += n.z * offset;
+      });
+      break;
+    }
+    case 'flatten': {
+      const planeNormal = sculpt.hitNormal.clone();
+      clayMesh.worldToLocal(planeNormal);
+      const planePoint = localHit.clone();
+
+      allAffected.forEach(({ index, influence }) => {
+        const vc = vertCache.original[index];
+        const toPlane = vc.clone().sub(planePoint);
+        const dist = toPlane.dot(planeNormal);
+        const offset = dist * influence * strength * 8;
+        vc.x -= planeNormal.x * offset;
+        vc.y -= planeNormal.y * offset;
+        vc.z -= planeNormal.z * offset;
+      });
+      break;
+    }
+    case 'pinch': {
+      // Pull vertices toward hit point center
+      allAffected.forEach(({ index, influence }) => {
+        const vc = vertCache.original[index];
+        const toCenter = localHit.clone().sub(vc);
+        const offset = strength * influence * (shift ? -1 : 1);
+        vc.x += toCenter.x * offset;
+        vc.y += toCenter.y * offset;
+        vc.z += toCenter.z * offset;
+      });
+      break;
+    }
+    case 'grab': {
+      // Move vertices in drag direction
+      const dragX = event.clientX - sculpt.lastPointer.x;
+      const dragY = event.clientY - sculpt.lastPointer.y;
+      const dragScale = 0.008;
+
+      allAffected.forEach(({ index, influence }) => {
+        const vc = vertCache.original[index];
+        vc.x += dragX * dragScale * influence;
+        vc.y -= dragY * dragScale * influence;
+      });
+      break;
+    }
+    case 'carve': {
+      // Dig a groove along drag direction
+      const dragX = event.clientX - sculpt.lastPointer.x;
+      const dragY = event.clientY - sculpt.lastPointer.y;
+      const dragDir = new THREE.Vector2(dragX, dragY).normalize();
+
+      allAffected.forEach(({ index, influence }) => {
+        const vc = vertCache.original[index];
+        const n = vertCache.normals[index];
+        // Push inward perpendicular to surface
+        const depth = strength * influence * 0.15 * (shift ? -1 : 1);
+        vc.x -= n.x * depth;
+        vc.y -= n.y * depth;
+        vc.z -= n.z * depth;
+      });
+      break;
+    }
+  }
+
+  // Write back to geometry
+  allAffected.forEach(({ index }) => {
+    const vc = vertCache.original[index];
+    const i3 = index * 3;
+    pos.array[i3] = vc.x;
+    pos.array[i3 + 1] = vc.y;
+    pos.array[i3 + 2] = vc.z;
+  });
+  pos.needsUpdate = true;
+}
+
+function mirrorVertX(x, nx, offset) {
+  // Help push symmetric vertices to stay mirrored
+  return x;
+}
+
+// ============================================================
+//  Event Handlers
+// ============================================================
+function onPointerDown(event) {
+  if (event.button !== 0) return;
+  if (!getSculptHit(event)) return;
+
+  state.isSculpting = true;
+  sculpt.lastPointer.set(event.clientX, event.clientY);
+  orbitControls.enabled = false;
+
+  // Save undo state before sculpting
+  saveUndoState();
+  document.getElementById('brush-hud').classList.add('show');
+  applyBrush(event);
+}
+
+function onPointerMove(event) {
+  if (!clayMesh) return;
+
+  // Update brush cursor
+  if (getSculptHit(event)) {
+    if (sculpt.cursorRing) {
+      sculpt.cursorRing.position.copy(sculpt.hitPoint);
+      const up = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(up, sculpt.hitNormal);
+      sculpt.cursorRing.quaternion.copy(quat);
+      sculpt.cursorRing.scale.setScalar(state.brushSize);
+      sculpt.cursorRing.visible = true;
+    }
+  } else {
+    if (sculpt.cursorRing) sculpt.cursorRing.visible = false;
+  }
+
+  if (!state.isSculpting) return;
+
+  applyBrush(event);
+  sculpt.lastPointer.set(event.clientX, event.clientY);
+}
+
+function onPointerUp(event) {
+  if (!state.isSculpting) return;
+  state.isSculpting = false;
+  orbitControls.enabled = true;
+  document.getElementById('brush-hud').classList.remove('show');
+
+  // Update normals
+  if (clayMesh) {
+    clayMesh.geometry.computeVertexNormals();
+    computeVertNormals();
+    updateStats();
+  }
+}
+
+// ============================================================
+//  Undo/Redo
+// ============================================================
+function saveUndoState() {
+  if (!clayMesh) return;
+  const pos = clayMesh.geometry.attributes.position.array.slice();
+  state.undoStack.push(new Float32Array(pos));
+  if (state.undoStack.length > 40) state.undoStack.shift();
+  state.redoStack = [];
+}
+
+function undo() {
+  if (state.undoStack.length === 0) return;
+  const current = clayMesh.geometry.attributes.position.array.slice();
+  state.redoStack.push(new Float32Array(current));
+  const prev = state.undoStack.pop();
+  clayMesh.geometry.attributes.position.array.set(prev);
+  clayMesh.geometry.attributes.position.needsUpdate = true;
+  clayMesh.geometry.computeVertexNormals();
+  rebuildVertCache();
+  updateStats();
+  showToast('撤销');
+}
+
+function redo() {
+  if (state.redoStack.length === 0) return;
+  const current = clayMesh.geometry.attributes.position.array.slice();
+  state.undoStack.push(new Float32Array(current));
+  const next = state.redoStack.pop();
+  clayMesh.geometry.attributes.position.array.set(next);
+  clayMesh.geometry.attributes.position.needsUpdate = true;
+  clayMesh.geometry.computeVertexNormals();
+  rebuildVertCache();
+  updateStats();
+  showToast('重做');
+}
+
+// ============================================================
+//  Subdivide
+// ============================================================
+function subdivideMesh() {
+  if (!clayMesh) return;
+  saveUndoState();
+
+  const geo = clayMesh.geometry;
+  const pos = geo.attributes.position;
+  const nonIndexed = geo.index ? geo.toNonIndexed() : geo.clone();
+  const positions = nonIndexed.attributes.position.array;
+  const faceCount = positions.length / 9;
+
+  const newPositions = [];
+  const v = (i) => [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]];
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+
+  for (let f = 0; f < faceCount; f++) {
+    const i0 = f * 3, i1 = f * 3 + 1, i2 = f * 3 + 2;
+    const a = v(i0), b = v(i1), c = v(i2);
+    const mab = mid(a, b), mbc = mid(b, c), mca = mid(c, a);
+    [a, mab, mca, b, mbc, mab, c, mca, mbc, mab, mbc, mca].forEach(vv => {
+      newPositions.push(vv[0], vv[1], vv[2]);
+    });
+  }
+
+  const newGeo = new THREE.BufferGeometry();
+  newGeo.setAttribute('position', new THREE.Float32BufferAttribute(newPositions, 3));
+  newGeo.computeVertexNormals();
+
+  clayMesh.geometry = newGeo;
+  geo.dispose();
+  rebuildVertCache();
+  updateStats();
+  showToast(`细分完成 — ${Math.round(vertCache.original.length).toLocaleString()} 顶点`);
+}
+
+// ============================================================
+//  Export
+// ============================================================
+async function exportGLB() {
+  if (!clayMesh) { showToast('无模型可导出'); return; }
+  showToast('正在导出...');
+
+  try {
+    const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
+    const exporter = new GLTFExporter();
+
+    // Create a clean copy
+    const exportScene = new THREE.Scene();
+    const cloneGeo = clayMesh.geometry.clone();
+    const cloneMat = clayMesh.material.clone();
+    const clone = new THREE.Mesh(cloneGeo, cloneMat);
+    exportScene.add(clone);
+
+    exporter.parse(exportScene, (glb) => {
+      const blob = new Blob([glb], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'clay-sculpture.glb';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('导出 GLB 完成 ✅');
+    }, (err) => {
+      console.error(err);
+      showToast('导出失败');
+    }, { binary: true });
+  } catch (err) {
+    showToast('导出器加载失败');
+  }
+}
+
+// ============================================================
+//  Material Library (LocalStorage)
+// ============================================================
+const LIBRARY_KEY = 'clay_material_library';
+
+function getLibrary() {
+  try {
+    return JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveLibrary(data) {
+  localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
+}
+
+function saveToLibrary() {
+  if (!clayMesh) return;
+  const name = document.getElementById('save-name').value.trim() || '未命名';
+  const pos = clayMesh.geometry.attributes.position.array;
+  const norm = clayMesh.geometry.attributes.normal?.array || null;
+  const uv = clayMesh.geometry.attributes.uv?.array || null;
+  const color = '#' + clayMaterial.color.getHexString();
+
+  const item = {
+    id: Date.now(),
+    name,
+    date: new Date().toISOString().slice(0, 10),
+    color,
+    roughness: clayMaterial.roughness,
+    metalness: clayMaterial.metalness,
+    vertices: Array.from(pos),
+    normals: norm ? Array.from(norm) : null,
+    uvs: uv ? Array.from(uv) : null,
+    vertexCount: pos.length / 3,
+    clayType: state.clayType,
+  };
+
+  const lib = getLibrary();
+  lib.unshift(item);
+  // Keep max 20 items
+  if (lib.length > 20) lib.length = 20;
+  saveLibrary(lib);
+
+  closeSaveModal();
+  showToast(`"${name}" 已存入素材库 📦`);
+}
+
+function openSaveModal() {
+  if (!clayMesh) { showToast('无模型可保存'); return; }
+  document.getElementById('save-name').value = '我的捏土作品';
+  document.getElementById('save-modal').classList.add('open');
+}
+
+function closeSaveModal() {
+  document.getElementById('save-modal').classList.remove('open');
+}
+
+function openLibraryModal() {
+  const grid = document.getElementById('lib-grid');
+  const lib = getLibrary();
+
+  if (lib.length === 0) {
+    grid.innerHTML = '<div class="lib-empty">素材库为空<br>在捏土工坊中雕刻模型后存入</div>';
+  } else {
+    grid.innerHTML = lib.map((item, idx) => `
+      <div class="lib-item">
+        <div class="lib-icon" style="background:${item.color}">🫱</div>
+        <div class="lib-name">${item.name}</div>
+        <div style="font-size:9px;color:var(--gray-400)">${item.vertexCount} 顶点</div>
+        <div class="lib-del" data-idx="${idx}" title="删除">✕ 删除</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('library-modal').classList.add('open');
+
+  // Bind delete handlers
+  grid.querySelectorAll('.lib-del').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.idx);
+      deleteLibraryItem(idx);
+    });
+  });
+
+  // Bind load handlers
+  grid.querySelectorAll('.lib-item').forEach((el, idx) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('lib-del')) return;
+      loadFromLibrary(idx);
+      closeLibraryModal();
+    });
+  });
+}
+
+function closeLibraryModal() {
+  document.getElementById('library-modal').classList.remove('open');
+}
+
+function deleteLibraryItem(idx) {
+  const lib = getLibrary();
+  const name = lib[idx]?.name || '未知';
+  lib.splice(idx, 1);
+  saveLibrary(lib);
+  openLibraryModal();
+  showToast(`已删除 "${name}"`);
+}
+
+function loadFromLibrary(idx) {
+  const lib = getLibrary();
+  const item = lib[idx];
+  if (!item) return;
+
+  if (!confirm(`加载素材 "${item.name}" 到当前场景？当前模型将替换。`)) return;
+
+  // Build geometry from stored vertices
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(item.vertices, 3));
+  if (item.normals) geo.setAttribute('normal', new THREE.Float32BufferAttribute(item.normals, 3));
+  if (item.uvs) geo.setAttribute('uv', new THREE.Float32BufferAttribute(item.uvs, 2));
+  geo.computeVertexNormals();
+
+  if (clayMaterial) clayMaterial.dispose();
+  clayMaterial = new THREE.MeshStandardMaterial({
+    color: item.color,
+    roughness: item.roughness,
+    metalness: item.metalness,
+    envMapIntensity: 0.3,
+  });
+
+  if (clayMesh) {
+    scene.remove(clayMesh);
+    clayMesh.geometry.dispose();
+    clayMesh.material?.dispose();
+  }
+
+  clayMesh = new THREE.Mesh(geo, clayMaterial);
+  clayMesh.castShadow = true;
+  clayMesh.receiveShadow = true;
+  scene.add(clayMesh);
+
+  // Update material controls
+  document.getElementById('clay-color').value = item.color;
+  document.getElementById('clay-roughness').value = item.roughness;
+  document.getElementById('clay-metalness').value = item.metalness;
+
+  state.undoStack = [];
+  state.redoStack = [];
+  rebuildVertCache();
+  updateStats();
+  showToast(`已加载素材 "${item.name}" 🫱`);
+}
+
+// ============================================================
+//  UI Helpers
+// ============================================================
+function updateStats() {
+  if (!clayMesh) {
+    document.getElementById('stat-verts').textContent = '0';
+    document.getElementById('stat-faces').textContent = '0';
+    document.getElementById('vert-count-display').textContent = '顶点: 0';
+    return;
+  }
+  const vc = clayMesh.geometry.attributes.position.count;
+  const fc = vc / 3;
+  document.getElementById('stat-verts').textContent = vc.toLocaleString();
+  document.getElementById('stat-faces').textContent = Math.round(fc).toLocaleString();
+  document.getElementById('vert-count-display').textContent = `顶点: ${vc.toLocaleString()}`;
+
+  const brushNames = {
+    push: '推拉', smooth: '平滑', inflate: '膨胀', flatten: '压平',
+    pinch: '捏夹', grab: '拖拽', carve: '刻痕',
+  };
+  document.getElementById('stat-brush').textContent = brushNames[state.brushType] || state.brushType;
+  document.getElementById('stat-symmetry').textContent = state.symmetry ? '开 (X轴)' : '关';
+}
+
+function setBrushType(type) {
+  state.brushType = type;
+  document.querySelectorAll('.tool-btn[data-brush]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.brush === type);
+  });
+  updateStats();
+}
+
+function setClayType(type) {
+  saveUndoState();
+  initClayMesh(type);
+  document.querySelectorAll('.clay-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.clay === type);
+  });
+  updateStats();
+}
+
+function toggleSymmetry() {
+  state.symmetry = !state.symmetry;
+  const btn = document.getElementById('btn-symmetry');
+  btn.classList.toggle('active', state.symmetry);
+  const indicator = document.getElementById('symmetry-indicator');
+  if (state.symmetry) {
+    indicator.classList.add('show');
+    showToast('对称模式: X轴镜像');
+  } else {
+    indicator.classList.remove('show');
+    showToast('对称模式: 关闭');
+  }
+  updateStats();
+}
+
+function toggleWireframe() {
+  state.wireframe = !state.wireframe;
+  if (clayMaterial) {
+    clayMaterial.wireframe = state.wireframe;
+    clayMaterial.needsUpdate = true;
+  }
+  document.getElementById('btn-wireframe').style.color = state.wireframe ? 'var(--terracotta)' : '';
+  showToast(state.wireframe ? '线框模式' : '实体模式');
+}
+
+function setView(view) {
+  const dist = 7;
+  const positions = {
+    front: [0, 0, dist],
+    back: [0, 0, -dist],
+    top: [0, dist, 0.01],
+    right: [dist, 0, 0],
+    left: [-dist, 0, 0],
+  };
+  const p = positions[view] || [4, 3, 6];
+  camera.position.set(...p);
+  camera.lookAt(0, 0, 0);
+  orbitControls.target.set(0, 0, 0);
+  orbitControls.update();
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ============================================================
+//  Setup
+// ============================================================
+function setupUI() {
+  // Brush buttons
+  document.querySelectorAll('.tool-btn[data-brush]').forEach(btn => {
+    btn.addEventListener('click', () => setBrushType(btn.dataset.brush));
+  });
+
+  // Action buttons
+  document.querySelectorAll('.tool-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switch (btn.dataset.action) {
+        case 'subdivide': subdivideMesh(); break;
+        case 'toggle-symmetry': toggleSymmetry(); break;
+      }
+    });
+  });
+
+  // Header buttons
+  document.querySelectorAll('.header-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switch (btn.dataset.action) {
+        case 'undo': undo(); break;
+        case 'redo': redo(); break;
+        case 'reset-clay': resetClay(); break;
+        case 'export-glb': exportGLB(); break;
+        case 'save-library': openSaveModal(); break;
+      }
+    });
+  });
+
+  // Clay type buttons
+  document.querySelectorAll('.clay-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => setClayType(btn.dataset.clay));
+  });
+
+  // Viewport buttons
+  document.querySelectorAll('.vp-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => setView(btn.dataset.view));
+  });
+  document.querySelector('.vp-btn[data-action="frame"]').addEventListener('click', () => {
+    if (!clayMesh) return;
+    const box = new THREE.Box3().setFromObject(clayMesh);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const dist = maxDim * 2 + 1;
+    camera.position.set(center.x + dist * 0.6, center.y + dist * 0.5, center.z + dist * 0.6);
+    orbitControls.target.copy(center);
+    orbitControls.update();
+  });
+  document.querySelector('.vp-btn[data-action="reset-view"]').addEventListener('click', () => {
+    camera.position.set(4, 3, 6);
+    orbitControls.target.set(0, 0, 0);
+    orbitControls.update();
+  });
+  document.querySelector('.vp-btn[data-action="toggle-grid"]').addEventListener('click', () => {
+    gridHelper.visible = !gridHelper.visible;
+    showToast(gridHelper.visible ? '显示网格' : '隐藏网格');
+  });
+  document.querySelector('.vp-btn[data-action="toggle-wireframe"]').addEventListener('click', toggleWireframe);
+
+  // Brush settings
+  document.getElementById('brush-size').addEventListener('input', (e) => {
+    state.brushSize = parseFloat(e.target.value);
+    document.getElementById('brush-size-val').textContent = state.brushSize.toFixed(2);
+  });
+  document.getElementById('brush-strength').addEventListener('input', (e) => {
+    state.brushStrength = parseFloat(e.target.value);
+    document.getElementById('brush-strength-val').textContent = state.brushStrength.toFixed(2);
+  });
+  document.getElementById('brush-falloff').addEventListener('input', (e) => {
+    state.brushFalloff = parseFloat(e.target.value);
+    document.getElementById('brush-falloff-val').textContent = state.brushFalloff.toFixed(1);
+  });
+
+  // Material settings
+  document.getElementById('clay-color').addEventListener('input', (e) => {
+    if (clayMaterial) clayMaterial.color.set(e.target.value);
+  });
+  document.getElementById('clay-roughness').addEventListener('input', (e) => {
+    if (clayMaterial) clayMaterial.roughness = parseFloat(e.target.value);
+  });
+  document.getElementById('clay-metalness').addEventListener('input', (e) => {
+    if (clayMaterial) clayMaterial.metalness = parseFloat(e.target.value);
+  });
+
+  // Modal close
+  document.getElementById('save-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeSaveModal();
+  });
+  document.getElementById('library-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeLibraryModal();
+  });
+
+  // Pointer events for sculpting
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('pointerleave', onPointerUp);
+}
+
+function resetClay() {
+  if (!confirm('确定重置黏土？所有雕刻将丢失。')) return;
+  initClayMesh(state.clayType);
+  showToast('黏土已重置 🔄');
+}
+
+function setupKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    if (ctrl && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); }
+    if (ctrl && e.key === 'y') { e.preventDefault(); redo(); }
+    if (e.key === 's' && !ctrl) { e.preventDefault(); toggleSymmetry(); }
+    if (e.key === 'd' && !ctrl) { e.preventDefault(); subdivideMesh(); }
+
+    // Brush hotkeys
+    const brushKeys = { '1': 'push', '2': 'smooth', '3': 'inflate', '4': 'flatten', '5': 'pinch', '6': 'grab', '7': 'carve' };
+    if (brushKeys[e.key]) { e.preventDefault(); setBrushType(brushKeys[e.key]); }
+
+    if (e.key === 'f' && !ctrl) {
+      e.preventDefault();
+      document.querySelector('.vp-btn[data-action="frame"]').click();
+    }
+  });
+}
+
+function onResize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+new ResizeObserver(onResize).observe(viewport);
+
+// ============================================================
+//  Animation Loop
+// ============================================================
+function animate() {
+  requestAnimationFrame(animate);
+  orbitControls.update();
+  renderer.render(scene, camera);
+}
+
+// ============================================================
+//  Init
+// ============================================================
+function init() {
+  initSculptCursor();
+  initClayMesh('sphere');
+  setupUI();
+  setupKeyboard();
+  updateStats();
+  showToast('🫱 捏土工坊已就绪 · 拖拽左键开始雕刻');
+  animate();
+}
+
+init();
+
+// Expose for modeler.html integration
+window.clayApp = {
+  getModelData: () => {
+    if (!clayMesh) return null;
+    const pos = clayMesh.geometry.attributes.position.array;
+    return {
+      vertices: Array.from(pos),
+      color: '#' + clayMaterial.color.getHexString(),
+      roughness: clayMaterial.roughness,
+      metalness: clayMaterial.metalness,
+      vertexCount: pos.length / 3,
+    };
+  },
+  loadModelData: (data) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(data.vertices, 3));
+    geo.computeVertexNormals();
+    if (clayMaterial) clayMaterial.dispose();
+    clayMaterial = new THREE.MeshStandardMaterial({
+      color: data.color, roughness: data.roughness, metalness: data.metalness,
+      envMapIntensity: 0.3,
+    });
+    if (clayMesh) { scene.remove(clayMesh); clayMesh.geometry.dispose(); }
+    clayMesh = new THREE.Mesh(geo, clayMaterial);
+    clayMesh.castShadow = true; clayMesh.receiveShadow = true;
+    scene.add(clayMesh);
+    rebuildVertCache();
+    updateStats();
+  },
+};
+</script>
+</body>
+</html>
