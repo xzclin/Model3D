@@ -32,7 +32,13 @@
 </p>
 
 <br/>
-![Demo Video]([https://user-images.githubusercontent.com/xxxxxx/xxxx.mp4](https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4)
+
+<p align="center">
+  <a href="https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4">▶ 点击观看演示视频</a>
+  <br/>
+  <br/>
+  <video src="https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4" controls width="100%"></video>
+</p>
 
 <br/>
 </div>
