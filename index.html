@@ -249,6 +249,254 @@
             background-clip: text;
         }
 
+        /* ---- 下载卡片 ---- */
+        .download-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 16px;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.9s;
+        }
+        .section.active .download-grid {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .download-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 20px 24px 22px;
+            width: 200px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            cursor: default;
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+        }
+        .download-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .download-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+        }
+        .download-card:hover::before {
+            opacity: 1;
+        }
+        .download-card .platform-icon {
+            font-size: 2.4rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .download-card .platform-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .download-card .platform-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .download-card .download-btn {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 24px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            font-family: inherit;
+            text-decoration: none;
+            width: 100%;
+            color: #fff;
+            background: rgba(0, 113, 227, 0.2);
+            border: 0.5px solid rgba(0, 113, 227, 0.25);
+        }
+        .download-card .download-btn:hover {
+            background: var(--blue);
+            border-color: var(--blue);
+            box-shadow: 0 0 24px rgba(0, 113, 227, 0.3);
+            transform: scale(1.03);
+        }
+        .download-card .download-btn.recommended {
+            background: var(--blue);
+            border-color: var(--blue);
+            box-shadow: 0 4px 20px rgba(0, 113, 227, 0.35);
+        }
+        .download-card .download-btn.recommended::after {
+            content: ' ★ 推荐';
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .download-card .download-btn .badge {
+            display: inline-block;
+            font-size: 9px;
+            background: rgba(52, 199, 89, 0.2);
+            color: #34c759;
+            padding: 0 8px;
+            border-radius: 12px;
+            margin-left: 4px;
+            font-weight: 400;
+        }
+        .download-card .coming-soon {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 24px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+            width: 100%;
+            cursor: not-allowed;
+        }
+        .download-card.platform-win { --accent: 0, 113, 227; }
+        .download-card.platform-mac { --accent: 175, 82, 222; }
+        .download-card.platform-linux { --accent: 255, 159, 10; }
+        .download-card.platform-web { --accent: 52, 199, 89; }
+        .download-card .card-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(var(--accent, 0,113,227), 0.06), transparent 60%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .download-card:hover .card-glow {
+            opacity: 1;
+        }
+
+        .version-info {
+            margin-top: 14px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.2s;
+            pointer-events: auto;
+        }
+        .section.active .version-info {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .version-info a {
+            color: var(--blue-light);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .version-info a:hover {
+            opacity: 0.7;
+        }
+        .version-info .dot-sep {
+            margin: 0 8px;
+            opacity: 0.3;
+        }
+
+        .sys-req-toggle {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            pointer-events: auto;
+            transition: color 0.2s;
+            background: none;
+            border: none;
+            font-family: inherit;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.4s;
+        }
+        .section.active .sys-req-toggle {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .sys-req-toggle:hover {
+            color: #fff;
+        }
+        .sys-req-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: auto;
+        }
+        .sys-req-panel.open {
+            max-height: 300px;
+            opacity: 1;
+        }
+        .sys-req-panel .req-content {
+            background: rgba(255, 255, 255, 0.03);
+            border: 0.5px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+            text-align: left;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .sys-req-panel .req-content strong {
+            color: rgba(255,255,255,0.7);
+        }
+        .sys-req-panel .req-content code {
+            background: rgba(255,255,255,0.06);
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        /* 移动端响应 */
+        @media (max-width: 768px) {
+            .download-card {
+                width: 160px;
+                padding: 14px 16px 18px;
+            }
+            .download-card .platform-icon {
+                font-size: 1.8rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .download-grid {
+                gap: 10px;
+            }
+            .download-card {
+                width: 140px;
+                padding: 12px 12px 16px;
+            }
+            .download-card .platform-icon {
+                font-size: 1.5rem;
+            }
+            .download-card .platform-name {
+                font-size: 0.85rem;
+            }
+            .download-card .download-btn {
+                font-size: 0.75rem;
+                padding: 6px 14px;
+            }
+        }
+
         /* ============================================================
            AI 助手聊天界面
            ============================================================ */
@@ -746,16 +994,80 @@
             </div>
         </section>
 
-        <!-- PAGE 6 — CTA -->
+        <!-- PAGE 6 — 下载页 -->
         <section id="page-cta" class="section" data-index="5">
             <div class="section-canvas" id="canvas-cta"></div>
             <div class="section-content">
-                <div class="page-label">✦ 即刻启程</div>
-                <h2 class="page-title">开始你的 3D 之旅</h2>
+                <div class="page-label">✦ 下载</div>
+                <h2 class="page-title">下载 Model3D</h2>
                 <p class="page-desc" style="max-width:500px;">
-                    免费体验 · 无需安装 · 浏览器中直接创作
+                    跨平台支持 · 免费使用 · 选择你的平台
                 </p>
-                <a href="#" class="cta-btn" onclick="alert('欢迎使用 Model3D！🚀'); return false;">立即体验 →</a>
+
+                <div class="download-grid">
+                    <!-- Windows -->
+                    <div class="download-card platform-win">
+                        <div class="card-glow"></div>
+                        <span class="platform-icon">🪟</span>
+                        <div class="platform-name">Windows</div>
+                        <div class="platform-desc">Windows 10 / 11 · x64</div>
+                        <a class="download-btn" id="dl-win" href="https://github.com/xzclin/Model3D/releases/latest" target="_blank" rel="noopener">
+                            ↓ 下载 EXE <span class="badge">NSIS</span>
+                        </a>
+                    </div>
+
+                    <!-- macOS -->
+                    <div class="download-card platform-mac">
+                        <div class="card-glow"></div>
+                        <span class="platform-icon">🍎</span>
+                        <div class="platform-name">macOS</div>
+                        <div class="platform-desc">macOS 12+ · Intel &amp; Apple Silicon</div>
+                        <a class="download-btn" id="dl-mac" href="https://github.com/xzclin/Model3D/releases/latest" target="_blank" rel="noopener">
+                            ↓ 下载 DMG
+                        </a>
+                    </div>
+
+                    <!-- Linux -->
+                    <div class="download-card platform-linux">
+                        <div class="card-glow"></div>
+                        <span class="platform-icon">🐧</span>
+                        <div class="platform-name">Linux</div>
+                        <div class="platform-desc">Ubuntu 22.04+ · x64</div>
+                        <a class="download-btn" id="dl-linux" href="https://github.com/xzclin/Model3D/releases/latest" target="_blank" rel="noopener">
+                            ↓ 下载 AppImage
+                        </a>
+                    </div>
+
+                    <!-- Web 版 -->
+                    <div class="download-card platform-web">
+                        <div class="card-glow"></div>
+                        <span class="platform-icon">🌐</span>
+                        <div class="platform-name">Web 版</div>
+                        <div class="platform-desc">无需安装 · 浏览器即用</div>
+                        <a class="download-btn" href="modeler.html" target="_blank" rel="noopener">
+                            🚀 在线体验
+                        </a>
+                    </div>
+                </div>
+
+                <div class="version-info" id="version-info">
+                    <span id="ver-current">v0.1.0</span>
+                    <span class="dot-sep">·</span>
+                    <a href="https://github.com/xzclin/Model3D/releases" target="_blank" rel="noopener">查看全部版本</a>
+                    <span class="dot-sep">·</span>
+                    <a href="https://github.com/xzclin/Model3D" target="_blank" rel="noopener">GitHub 仓库</a>
+                </div>
+
+                <button class="sys-req-toggle" id="sys-req-btn">▼ 系统要求</button>
+                <div class="sys-req-panel" id="sys-req-panel">
+                    <div class="req-content">
+                        <strong>🪟 Windows</strong>：Windows 10 或更高版本 · x86_64<br>
+                        <strong>🍎 macOS</strong>：macOS 12 Monterey 或更高版本 · Intel 或 Apple Silicon<br>
+                        <strong>🐧 Linux</strong>：Ubuntu 22.04+ · 需 <code>libwebkit2gtk-4.1-dev</code> 等依赖<br>
+                        <strong>💾 磁盘</strong>：至少 200 MB 可用空间<br>
+                        <strong>🎮 显卡</strong>：支持 WebGL 2.0 的 GPU
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -789,7 +1101,7 @@
         let isScrolling = false;
 
         const dotsContainer = document.getElementById('nav-dots');
-        const pageNames = ['首页', '建模', '雕刻', 'AI助手', '素材库', '开始'];
+        const pageNames = ['首页', '建模', '雕刻', 'AI助手', '素材库', '下载'];
         sections.forEach((_, i) => {
             const dot = document.createElement('div');
             dot.className = 'dot' + (i === 0 ? ' active' : '');
@@ -2121,6 +2433,56 @@
         });
 
         console.log('🚀 Model3D 官网已启动！包含全部炫酷 3D 效果 + AI 助手');
+
+        // ──────────────────────────────────────────────────────────────
+        //  6. 下载页交互
+        // ──────────────────────────────────────────────────────────────
+
+        // ---- 6.1 自动检测平台并高亮推荐下载 ----
+        function detectPlatform() {
+            const ua = navigator.userAgent.toLowerCase();
+            const cards = document.querySelectorAll('.download-card');
+            cards.forEach(c => c.style.order = '0');
+
+            if (ua.includes('win')) {
+                document.querySelector('.platform-win')?.style.setProperty('order', '-1');
+                document.querySelector('.platform-win .download-btn')?.classList.add('recommended');
+            } else if (ua.includes('mac')) {
+                document.querySelector('.platform-mac')?.style.setProperty('order', '-1');
+                document.querySelector('.platform-mac .download-btn')?.classList.add('recommended');
+            } else if (ua.includes('linux')) {
+                document.querySelector('.platform-linux')?.style.setProperty('order', '-1');
+                document.querySelector('.platform-linux .download-btn')?.classList.add('recommended');
+            }
+        }
+        detectPlatform();
+
+        // ---- 6.2 系统要求折叠 ----
+        const sysReqBtn = document.getElementById('sys-req-btn');
+        const sysReqPanel = document.getElementById('sys-req-panel');
+        if (sysReqBtn && sysReqPanel) {
+            sysReqBtn.addEventListener('click', () => {
+                const isOpen = sysReqPanel.classList.toggle('open');
+                sysReqBtn.textContent = isOpen ? '▲ 收起系统要求' : '▼ 系统要求';
+            });
+        }
+
+        // ---- 6.3 下载链接智能指向最新 Release ----
+        // 当 GitHub Release 准备好后，可将以下链接替换为具体 asset URL
+        // 目前指向 releases/latest 页面，用户自行选择对应文件下载
+        const VERSION = '0.1.0';
+        const verEl = document.getElementById('ver-current');
+        if (verEl) verEl.textContent = `v${VERSION}`;
+
+        // ---- 6.4 下载统计埋点 (占位) ----
+        document.querySelectorAll('.download-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const platform = this.closest('.download-card')?.querySelector('.platform-name')
+                    ?.textContent?.trim() || 'unknown';
+                console.log(`[Download] ${platform} - ${this.href}`);
+                // 后续可接入 GA / Plausible 等统计
+            });
+        });
     </script>
 </body>
 </html>
