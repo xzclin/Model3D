@@ -32,11 +32,7 @@
 </p>
 
 <br/>
-<video width="320" height="240" controls>
-  <source src="https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4" type="video/mp4">
-</video>
-
-> *Screenshot placeholder — insert your demo GIF or video here*
+<video src="https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4" controls width="100%" poster="modeler-tauri/src-tauri/icons/icon.png"></video>
 
 <br/>
 </div>
