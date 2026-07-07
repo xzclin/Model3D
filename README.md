@@ -32,8 +32,9 @@
 </p>
 
 <br/>
-
-https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000
+<video width="320" height="240" controls>
+  <source src="https://engo.jupcloud.top/videocompress.ai-1783416384353.mp4" type="video/mp4">
+</video>
 
 > *Screenshot placeholder — insert your demo GIF or video here*
 
@@ -131,16 +132,16 @@ https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000
 <div align="center">
 <table>
 <tr>
-<td><img src="https://via.placeholder.com/400x250/06060d/0071e3?text=Modeling+Viewport" alt="Modeling Viewport" width="100%"/></td>
-<td><img src="https://via.placeholder.com/400x250/06060d/ff9f0a?text=Sculpting+Mode" alt="Sculpting Mode" width="100%"/></td>
+<td><img src="https://engo.jupcloud.top/pic/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-07-07%20173524.png" alt="Modeling Viewport" width="100%"/></td>
+<td><img src="https://engo.jupcloud.top/pic/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-07-07%20173631.png" alt="Sculpting Mode" width="100%"/></td>
 </tr>
 <tr>
 <td align="center"><em>3D Modeling Viewport</em></td>
 <td align="center"><em>Clay Sculpting Interface</em></td>
 </tr>
 <tr>
-<td><img src="https://via.placeholder.com/400x250/06060d/af52de?text=AI+Assistant" alt="AI Assistant" width="100%"/></td>
-<td><img src="https://via.placeholder.com/400x250/06060d/34c759?text=Asset+Library" alt="Asset Library" width="100%"/></td>
+<td><img src="https://engo.jupcloud.top/pic/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-07-07%20173717.png" alt="AI Assistant" width="100%"/></td>
+<td><img src="https://engo.jupcloud.top/pic/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-07-07%20173805.png" alt="Asset Library" width="100%"/></td>
 </tr>
 <tr>
 <td align="center"><em>AI Modeling Assistant</em></td>
